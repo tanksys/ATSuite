@@ -1,0 +1,73 @@
+{
+  "trace_file": "./trace/gemini-flash-task002.json",
+  "nodes": [
+    {
+      "name": "openapi_explorer",
+      "dir": "./nodes/openapi_explorer",
+      "trace_names": [
+        {
+          "name": "openapi_explorer.get_api_overview",
+          "stateful": true
+        },
+        {
+          "name": "openapi_explorer.get_api_operation",
+          "stateful": true
+        }
+      ]
+    }
+  ],
+  "pipeline": {
+    "faas": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "units": [
+        {
+          "name": "openapi_get_api_overview",
+          "node": "openapi_explorer",
+          "trace_names": [
+            "openapi_explorer.get_api_overview"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "openapi_get_api_operation",
+          "node": "openapi_explorer",
+          "trace_names": [
+            "openapi_explorer.get_api_operation"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 60
+          }
+        }
+      ]
+    },
+    "mcp_serverless": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "servers": [
+        {
+          "name": "openapi_explorer",
+          "nodes": [
+            "openapi_explorer"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        }
+      ]
+    }
+  }
+}
