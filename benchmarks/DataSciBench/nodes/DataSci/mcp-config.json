@@ -1,0 +1,9 @@
+{
+  "name": "mcp",
+  "description": "DataSciBench Sandbox Execution Environment",
+  "python-version": "3.11",
+  "cpu": 2,
+  "memory": 2048,
+  "disk": 1024,
+  "timeout": 300
+}

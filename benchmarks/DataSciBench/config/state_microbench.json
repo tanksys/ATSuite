@@ -1,0 +1,57 @@
+{
+  "trace_file": "./trace/state-test.json",
+  "nodes": [
+    {
+      "name": "DataSci",
+      "dir": "./nodes/DataSci",
+      "trace_names": [
+        {
+          "name": "DataSci.datasci_run_code",
+          "tool": "datasci_run_code",
+          "stateful": true
+        }
+      ]
+    }
+  ],
+  "pipeline": {
+    "faas": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "units": [
+        {
+          "name": "DataSci_run_code",
+          "node": "DataSci",
+          "trace_names": [
+            "DataSci.datasci_run_code"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 300
+          }
+        }
+      ]
+    },
+    "mcp_serverless": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "servers": [
+        {
+          "name": "DataSci",
+          "nodes": [
+            "DataSci"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 300
+          }
+        }
+      ]
+    }
+  }
+}
