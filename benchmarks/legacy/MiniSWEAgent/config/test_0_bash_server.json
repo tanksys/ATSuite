@@ -1,0 +1,15 @@
+{
+  "trace_file": "./trace/trace_test_0.json",
+  "nodes": [
+    {
+      "name": "sandbox",
+      "type": "sandbox",
+      "dir": "./nodes/sandbox/",
+      "build": {
+        "base_image": "docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-12907:latest",
+        "shell_init": "source /opt/miniconda3/bin/activate && conda activate testbed",
+        "entrypoint": "cd /testbed && python /app/atsuite_sdk/bash_server.py"
+      }
+    }
+  ]
+}

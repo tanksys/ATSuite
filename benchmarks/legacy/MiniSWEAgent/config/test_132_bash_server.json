@@ -1,0 +1,14 @@
+{
+  "trace_file": "./trace/trace_test_132.json",
+  "nodes": [
+    {
+      "name": "sandbox",
+      "type": "sandbox",
+      "dir": "./nodes/sandbox/",
+      "build": {
+        "base_image": "docker.io/swebench/sweb.eval.x86_64.django_1776_django-13821:latest",
+        "entrypoint": "python /app/atsuite_sdk/bash_server.py"
+      }
+    }
+  ]
+}
