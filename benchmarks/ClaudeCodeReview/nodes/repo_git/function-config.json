@@ -1,0 +1,69 @@
+{
+  "name": "repo_git",
+  "python-version": "3.12",
+  "functions": [
+    {
+      "name": "repo_git_list_pull_requests",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "repo_git_get_pr_overview",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "repo_git_list_changed_files",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "repo_git_get_patch",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "repo_git_diff_between_refs",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "repo_git_show_file_at_ref",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "repo_git_log_for_path",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "repo_git_blame_range",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "repo_git_show_commit",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    }
+  ]
+}

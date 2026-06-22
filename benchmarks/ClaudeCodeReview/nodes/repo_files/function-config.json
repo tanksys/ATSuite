@@ -1,0 +1,41 @@
+{
+  "name": "workspace_tools",
+  "python-version": "3.12",
+  "functions": [
+    {
+      "name": "ls",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "glob_files",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "grep_text",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "read_file",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    },
+    {
+      "name": "todo_write",
+      "cpu": 1,
+      "memory": 1024,
+      "disk": 512,
+      "timeout": 30
+    }
+  ]
+}

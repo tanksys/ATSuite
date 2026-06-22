@@ -1,0 +1,9 @@
+{
+  "name": "repo_git",
+  "description": "Explicit git and pull request review tools",
+  "python-version": "3.12",
+  "cpu": 1,
+  "memory": 1024,
+  "disk": 512,
+  "timeout": 30
+}
