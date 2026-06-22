@@ -1,0 +1,12 @@
+# 配置阿里云PyPI镜像源（解决国内安装依赖慢/失败问题）
+--index-url https://mirrors.aliyun.com/pypi/simple/
+--trusted-host mirrors.aliyun.com
+
+# Google Maps API 核心依赖（保留版本限制）
+googlemaps>=4.0.0,<5.0.0
+
+# 环境变量管理（加载 GOOGLE_MAPS_API_KEY）
+python-dotenv>=1.0.0,<2.0.0
+
+# 基础依赖（Python 版本兼容）
+typing-extensions>=4.0.0,<5.0.0; python_version < "3.10"

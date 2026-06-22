@@ -1,0 +1,367 @@
+{
+  "trace_file": "./trace/google_maps_weather_data_national_parks_001.json",
+  "nodes": [
+    {
+      "name": "google_maps_geocoding",
+      "dir": "./nodes/google_maps_geocoding",
+      "trace_names": [
+        {
+          "name": "google_maps_maps_geocode",
+          "tool": "google_maps_maps_geocode"
+        },
+        {
+          "name": "google_maps_maps_reverse_geocode",
+          "tool": "google_maps_maps_reverse_geocode"
+        }
+      ]
+    },
+    {
+      "name": "google_maps_routing",
+      "dir": "./nodes/google_maps_routing",
+      "trace_names": [
+        {
+          "name": "google_maps_maps_distance_matrix",
+          "tool": "google_maps_maps_distance_matrix"
+        },
+        {
+          "name": "google_maps_maps_directions",
+          "tool": "google_maps_maps_directions"
+        }
+      ]
+    },
+    {
+      "name": "google_maps_places",
+      "dir": "./nodes/google_maps_places",
+      "trace_names": [
+        {
+          "name": "google_maps_search_nearby",
+          "tool": "google_maps_search_nearby"
+        }
+      ]
+    },
+    {
+      "name": "google_maps_elevation",
+      "dir": "./nodes/google_maps_elevation",
+      "trace_names": [
+        {
+          "name": "google_maps_maps_elevation",
+          "tool": "google_maps_maps_elevation"
+        }
+      ]
+    },
+    {
+      "name": "national_parks",
+      "dir": "./nodes/national_parks",
+      "trace_names": [
+        {
+          "name": "national_parks_find_parks",
+          "tool": "findParks"
+        },
+        {
+          "name": "national_parks_get_park_details",
+          "tool": "getParkDetails"
+        },
+        {
+          "name": "national_parks_get_alerts",
+          "tool": "getAlerts"
+        },
+        {
+          "name": "national_parks_get_visitor_centers",
+          "tool": "getVisitorCenters"
+        },
+        {
+          "name": "national_parks_get_campgrounds",
+          "tool": "getCampgrounds"
+        },
+        {
+          "name": "national_parks_get_events",
+          "tool": "getEvents"
+        }
+      ]
+    },
+    {
+      "name": "weather_data",
+      "dir": "./nodes/weather_data",
+      "trace_names": [
+        {
+          "name": "weather_data_get_current_weather",
+          "tool": "weather_data_get_current_weather"
+        },
+        {
+          "name": "weather_data_get_weather_forecast",
+          "tool": "weather_data_get_weather_forecast"
+        }
+      ]
+    }
+  ],
+  "pipeline": {
+    "faas": {
+      "build": {
+        "python_version": "3.11"
+      },
+      "units": [
+        {
+          "name": "google_maps_geocode",
+          "node": "google_maps_geocoding",
+          "trace_names": [
+            "google_maps_maps_geocode"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "google_maps_reverse_geocode",
+          "node": "google_maps_geocoding",
+          "trace_names": [
+            "google_maps_maps_reverse_geocode"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "google_maps_distance_matrix",
+          "node": "google_maps_routing",
+          "trace_names": [
+            "google_maps_maps_distance_matrix"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "google_maps_directions",
+          "node": "google_maps_routing",
+          "trace_names": [
+            "google_maps_maps_directions"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "google_maps_search_nearby",
+          "node": "google_maps_places",
+          "trace_names": [
+            "google_maps_search_nearby"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "google_maps_elevation",
+          "node": "google_maps_elevation",
+          "trace_names": [
+            "google_maps_maps_elevation"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "national_parks_find",
+          "node": "national_parks",
+          "trace_names": [
+            "national_parks_find_parks"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "national_parks_details",
+          "node": "national_parks",
+          "trace_names": [
+            "national_parks_get_park_details"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "national_parks_alerts",
+          "node": "national_parks",
+          "trace_names": [
+            "national_parks_get_alerts"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "national_parks_visitor_centers",
+          "node": "national_parks",
+          "trace_names": [
+            "national_parks_get_visitor_centers"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "national_parks_campgrounds",
+          "node": "national_parks",
+          "trace_names": [
+            "national_parks_get_campgrounds"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "national_parks_events",
+          "node": "national_parks",
+          "trace_names": [
+            "national_parks_get_events"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "weather_current",
+          "node": "weather_data",
+          "trace_names": [
+            "weather_data_get_current_weather"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "weather_forecast",
+          "node": "weather_data",
+          "trace_names": [
+            "weather_data_get_weather_forecast"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        }
+      ]
+    },
+    "mcp_serverless": {
+      "build": {
+        "python_version": "3.11"
+      },
+      "servers": [
+        {
+          "name": "google_maps_geocoding",
+          "nodes": [
+            "google_maps_geocoding"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "google_maps_routing",
+          "nodes": [
+            "google_maps_routing"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "google_maps_places",
+          "nodes": [
+            "google_maps_places"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "google_maps_elevation",
+          "nodes": [
+            "google_maps_elevation"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "national_parks",
+          "nodes": [
+            "national_parks"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "weather_data",
+          "nodes": [
+            "weather_data"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 60
+          }
+        }
+      ]
+    }
+  }
+}

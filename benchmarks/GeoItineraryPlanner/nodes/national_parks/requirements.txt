@@ -1,0 +1,12 @@
+# 配置阿里云PyPI镜像源（解决国内安装依赖慢/失败问题）
+--index-url https://mirrors.aliyun.com/pypi/simple/
+--trusted-host mirrors.aliyun.com
+
+# 核心HTTP请求库（用于调用NPS API）
+requests>=2.31.0,<3.0.0
+
+# 环境变量加载库（读取NPS_API_KEY）
+python-dotenv>=1.0.0,<2.0.0
+
+# 类型提示扩展（兼容Python 3.8+的类型注解，可选但建议）
+typing-extensions>=4.9.0,<5.0.0
