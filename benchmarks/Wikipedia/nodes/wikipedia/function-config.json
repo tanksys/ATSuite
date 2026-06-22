@@ -1,0 +1,69 @@
+{
+    "name": "wikipedia",
+    "python-version": "3.10",
+    "functions": [
+        {
+            "name": "wikipedia.search",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "wikipedia.get_article",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "wikipedia.get_summary",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "wikipedia.summarize_article_for_query",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "wikipedia.summarize_article_section",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "wikipedia.extract_key_facts",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "wikipedia.get_related_topics",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "wikipedia.get_sections",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "wikipedia.get_links",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        }
+    ]
+}

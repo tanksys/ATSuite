@@ -1,0 +1,2 @@
+wikipedia-api
+requests>=2.28.0

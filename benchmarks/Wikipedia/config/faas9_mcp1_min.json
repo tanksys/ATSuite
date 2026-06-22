@@ -1,0 +1,192 @@
+{
+  "trace_file": "./trace/gemini-flash-task002.json",
+  "nodes": [
+    {
+      "name": "wikipedia",
+      "dir": "./nodes/wikipedia",
+      "trace_names": [
+        {
+          "name": "wikipedia_search",
+          "tool": "wikipedia_search"
+        },
+        {
+          "name": "wikipedia_get_article",
+          "tool": "wikipedia_get_article"
+        },
+        {
+          "name": "wikipedia_get_summary",
+          "tool": "wikipedia_get_summary"
+        },
+        {
+          "name": "wikipedia_get_sections",
+          "tool": "wikipedia_get_sections"
+        },
+        {
+          "name": "wikipedia_get_links",
+          "tool": "wikipedia_get_links"
+        },
+        {
+          "name": "wikipedia_get_related_topics",
+          "tool": "wikipedia_get_related_topics"
+        },
+        {
+          "name": "wikipedia_summarize_article_for_query",
+          "tool": "wikipedia_summarize_article_for_query"
+        },
+        {
+          "name": "wikipedia_extract_key_facts",
+          "tool": "wikipedia_extract_key_facts"
+        },
+        {
+          "name": "wikipedia_summarize_article_section",
+          "tool": "wikipedia_summarize_article_section"
+        }
+      ]
+    }
+  ],
+  "pipeline": {
+    "faas": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "units": [
+        {
+          "name": "wikipedia",
+          "node": "wikipedia",
+          "trace_names": [
+            "wikipedia_search"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "wikipedia_get_article",
+          "node": "wikipedia",
+          "trace_names": [
+            "wikipedia_get_article"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "wikipedia_get_summary",
+          "node": "wikipedia",
+          "trace_names": [
+            "wikipedia_get_summary"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "wikipedia_get_sections",
+          "node": "wikipedia",
+          "trace_names": [
+            "wikipedia_get_sections"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "wikipedia_get_links",
+          "node": "wikipedia",
+          "trace_names": [
+            "wikipedia_get_links"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "wikipedia_get_related_topics",
+          "node": "wikipedia",
+          "trace_names": [
+            "wikipedia_get_related_topics"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 60
+          }
+        },
+        {
+          "name": "wikipedia_summarize_for_query",
+          "node": "wikipedia",
+          "trace_names": [
+            "wikipedia_summarize_article_for_query"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "wikipedia_extract_facts",
+          "node": "wikipedia",
+          "trace_names": [
+            "wikipedia_extract_key_facts"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "wikipedia_summarize_article_section",
+          "node": "wikipedia",
+          "trace_names": [
+            "wikipedia_summarize_article_section"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        }
+      ]
+    },
+    "mcp_serverless": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "servers": [
+        {
+          "name": "wikipedia",
+          "nodes": [
+            "wikipedia"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 30
+          }
+        }
+      ]
+    }
+  }
+}
