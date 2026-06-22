@@ -66,6 +66,10 @@ def read_requirements(path: Path) -> List[str]:
     return lines
 
 
+def read_system_requirements(node_dir: Path) -> List[str]:
+    return read_requirements(node_dir / "system-requirements.txt")
+
+
 def default_pip_source_options() -> List[str]:
     index_url = DEFAULT_PIP_INDEX_URL.strip()
     trusted_host = DEFAULT_PIP_TRUSTED_HOST.strip()
@@ -133,6 +137,7 @@ def build_node_image(
     entrypoint: Optional[str] = None,
     pip_index_url: Optional[str] = None,
     pip_trusted_host: Optional[str] = None,
+    system_packages: Optional[Iterable[str]] = None,
 ) -> None:
     # aws_agentcore prefers buildx for cross-platform ARM64 images, but some
     # Docker installs do not ship the buildx plugin. Fall back to docker build
@@ -171,6 +176,16 @@ def build_node_image(
         cmd.extend(["--build-arg", f"PIP_INDEX_URL={pip_index_url}"])
     if pip_trusted_host:
         cmd.extend(["--build-arg", f"PIP_TRUSTED_HOST={pip_trusted_host}"])
+    system_package_list = sorted(
+        {str(package).strip() for package in (system_packages or []) if str(package).strip()}
+    )
+    if system_package_list:
+        cmd.extend(
+            [
+                "--build-arg",
+                f"ATSUITE_SYSTEM_PACKAGES={' '.join(system_package_list)}",
+            ]
+        )
     if entrypoint:
         cmd.extend(["--build-arg", f"ENTRYPOINT={entrypoint}"])
     cmd.extend(["--build-arg", f"PROVIDER={provider}"])
@@ -236,6 +251,7 @@ def build_resolved_targets(
 
         if target.family == "faas":
             node = resolved.nodes[target.node_names[0]]
+            system_packages = read_system_requirements(node.dir)
             copy_node_source(node.dir, target_dir)
             copy_runtime_support(target_dir, spec.docker_provider)
             requirements = read_requirements(target_dir / "requirements.txt")
@@ -279,11 +295,13 @@ def build_resolved_targets(
                 platform=platform,
                 pip_index_url=pip_index_url,
                 pip_trusted_host=pip_trusted_host,
+                system_packages=system_packages,
             )
         else:
             mcp_root = target_dir / "mcp"
             mcp_root.mkdir(parents=True, exist_ok=True)
             all_requirements = set(DEFAULT_EXTRA_REQUIREMENTS)
+            all_system_packages = set()
             if spec.docker_provider in ("aws_lambda", "aws_agentcore"):
                 all_requirements.add("boto3")
             for node_name in target.node_names:
@@ -294,6 +312,7 @@ def build_resolved_targets(
                 all_requirements.update(
                     read_requirements(node.dir / "requirements.txt")
                 )
+                all_system_packages.update(read_system_requirements(node.dir))
                 if (node_target_dir / "init.sh").exists():
                     env = dict(os.environ)
                     env["ATSUITE_DATA_PATH"] = str(output_root / "data")
@@ -341,6 +360,7 @@ def build_resolved_targets(
                 platform=platform,
                 pip_index_url=pip_index_url,
                 pip_trusted_host=pip_trusted_host,
+                system_packages=sorted(all_system_packages),
             )
 
         print(f"Built image: {target_image_tag(resolved.bench_name, target)}")

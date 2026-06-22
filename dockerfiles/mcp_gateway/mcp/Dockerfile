@@ -7,6 +7,7 @@ ARG ATSUITE_MCP_NAME
 ARG PROVIDER
 ARG PIP_INDEX_URL
 ARG PIP_TRUSTED_HOST
+ARG ATSUITE_SYSTEM_PACKAGES=""
 
 ENV PROVIDER=${PROVIDER}
 ENV PYTHON_VERSION=${VERSION}
@@ -16,9 +17,11 @@ ENV PIP_TRUSTED_HOST=${PIP_TRUSTED_HOST}
 ENV PROJECT=atsuite
 
 RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends git ca-certificates; \
-    rm -rf /var/lib/apt/lists/*
+    if [ -n "${ATSUITE_SYSTEM_PACKAGES}" ]; then \
+        apt-get update; \
+        apt-get install -y --no-install-recommends ${ATSUITE_SYSTEM_PACKAGES}; \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
 
 WORKDIR /app
 COPY . /app

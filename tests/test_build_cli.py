@@ -43,6 +43,43 @@ class BuildDockerImagesTests(unittest.TestCase):
         self.assertIn("linux/arm64", captured[0])
         self.assertNotIn("buildx", captured[0])
 
+    def test_system_packages_are_opt_in_build_args(self) -> None:
+        captured = []
+
+        def fake_run(cmd, **kwargs):
+            captured.append(cmd)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            context = Path(tmp)
+            dockerfile = context / "Dockerfile"
+            dockerfile.write_text("FROM scratch\n", encoding="utf-8")
+            with mock.patch.object(build_cli, "run", side_effect=fake_run):
+                build_cli.build_node_image(
+                    "example:default",
+                    context,
+                    dockerfile,
+                    python_version="3.11",
+                    provider="aws_lambda",
+                    base_image="python:3.11-slim",
+                )
+                build_cli.build_node_image(
+                    "example:git",
+                    context,
+                    dockerfile,
+                    python_version="3.11",
+                    provider="aws_lambda",
+                    base_image="python:3.11-slim",
+                    system_packages=["git", "ca-certificates"],
+                )
+
+        default_cmd = captured[0]
+        git_cmd = captured[1]
+        self.assertFalse(any("ATSUITE_SYSTEM_PACKAGES" in part for part in default_cmd))
+        self.assertIn(
+            "ATSUITE_SYSTEM_PACKAGES=ca-certificates git",
+            git_cmd,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
