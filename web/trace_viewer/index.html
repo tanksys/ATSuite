@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trace Viewer</title>
+    <link rel="stylesheet" href="/web/trace_viewer/styles.css" />
+    <script
+      src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"
+      defer
+    ></script>
+    <script type="module" src="/web/trace_viewer/app.js"></script>
+  </head>
+  <body>
+    <header class="header">
+      <div>
+        <h1>Trace Viewer</h1>
+        <p class="subtitle">Visualize execution traces as a graph, with stateful tool chains separated from stateless fan-out when metadata is available.</p>
+      </div>
+      <div class="controls">
+        <label class="file-input">
+          <span>Load JSON</span>
+          <input id="file-input" type="file" accept="application/json" />
+        </label>
+        <div class="url-input">
+          <input
+            id="url-input"
+            type="text"
+            value="/api/trace?path=benchmarks/MiniSWEAgent/trace/trace_test_0.json"
+          />
+          <button id="load-url">Load URL</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="graph-panel">
+        <div class="graph-toolbar">
+          <div class="legend">
+            <span class="legend-item logic">Logic</span>
+            <span class="legend-item llm">LLM</span>
+            <span class="legend-item tool">Tool</span>
+            <span class="legend-item sandbox">Sandbox</span>
+          </div>
+        </div>
+        <div id="graph" class="graph"></div>
+      </section>
+      <aside class="detail-panel">
+        <h2>Details</h2>
+        <div id="details" class="details">
+          <p>Select a node or edge to see more information.</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="summary-panel">
+      <div class="summary">
+        <h2>Summary</h2>
+        <div id="summary" class="summary-content">
+          <p>Load a trace to see timing stats.</p>
+        </div>
+      </div>
+      <div class="calculator">
+        <h2>Throughput Calculator</h2>
+        <div class="calculator-form">
+          <label>
+            Cold start (ms)
+            <input id="cold-start-ms" type="number" min="0" value="0" />
+          </label>
+          <label>
+            Extra overhead (%)
+            <input id="overhead-percent" type="number" min="0" value="0" />
+          </label>
+          <button id="recalc">Recalculate</button>
+        </div>
+        <div id="calculator-output" class="calculator-output">
+          <p>Load a trace to run the calculator.</p>
+        </div>
+      </div>
+    </footer>
+
+    <section class="cost-panel">
+      <h2>Cost Estimation</h2>
+      <div class="cost-config">
+        <div class="cost-config-group">
+          <h3>LLM Model</h3>
+          <select id="llm-model">
+            <option value="gpt5-nano" selected>GPT-5 Nano</option>
+            <option value="gpt-4o-mini">GPT-4o Mini</option>
+            <option value="claude-4.5-sonnet">Claude 4.5 Sonnet</option>
+            <option value="qwen-plus">Qwen-Plus</option>
+          </select>
+        </div>
+        <div class="cost-config-group">
+          <h3>Sandbox Provider</h3>
+          <select id="sandbox-provider">
+            <option value="aws-agentcore">AWS AgentCore (2vCPU/4GB)</option>
+            <option value="aws-lambda">AWS Lambda (4GB)</option>
+            <option value="aliyun-fc">Aliyun FC (4GB)</option>
+          </select>
+        </div>
+        <button id="calc-cost">Calculate Cost</button>
+      </div>
+      <div id="cost-output" class="cost-output">
+        <p>Load a trace to estimate costs.</p>
+      </div>
+    </section>
+  </body>
+</html>

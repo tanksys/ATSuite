@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.vscode/
+url_results/
+.env
+results/
+zyh/
+con_result/
+
+/testscript/
+/test_result/
+
+.codex

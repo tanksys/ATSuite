@@ -1,0 +1,391 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: #1f1f1f;
+  background: #f5f6f8;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #e4e6ea;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.file-input {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  background: #eef2ff;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #c7d2fe;
+}
+
+.file-input input {
+  display: none;
+}
+
+.url-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.url-input input {
+  width: 320px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+}
+
+.url-input button,
+.calculator-form button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  padding: 16px 24px;
+}
+
+.graph-panel {
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e4e6ea;
+  min-height: 760px;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.legend {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #ffffff;
+}
+
+.legend-item.logic {
+  background: #4F81BD;
+}
+
+.legend-item.llm {
+  background: #9BBB59;
+}
+
+.legend-item.tool {
+  background: #C0504D;
+}
+
+.legend-item.sandbox {
+  background: #8064A2;
+}
+
+.graph {
+  width: 100%;
+  height: 760px;
+}
+
+.detail-panel {
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e4e6ea;
+  padding: 16px;
+  overflow: auto;
+  max-height: 760px;
+}
+
+.detail-panel h2 {
+  margin-top: 0;
+}
+
+.detail-group {
+  margin-bottom: 16px;
+}
+
+.detail-output pre {
+  background: #f8fafc;
+  padding: 8px;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 200px;
+}
+
+.detail-panel ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.detail-panel li {
+  padding: 10px 0;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.detail-panel li pre {
+  background: #f8fafc;
+  padding: 8px;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 200px;
+}
+
+.summary-panel {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  padding: 16px 24px 24px;
+}
+
+.summary,
+.calculator {
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e4e6ea;
+  padding: 16px;
+}
+
+.summary table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.summary th,
+.summary td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.calculator-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.calculator-form input {
+  width: 120px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+}
+
+.error {
+  color: #b91c1c;
+}
+
+/* Cost Estimation Panel */
+.cost-panel {
+  margin: 0 24px 24px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e4e6ea;
+  padding: 16px;
+}
+
+.cost-panel h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.cost-config {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.cost-config-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cost-config-group h3 {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.cost-config select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  min-width: 200px;
+  font-size: 14px;
+}
+
+.cost-config button {
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid #059669;
+  background: #059669;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cost-config button:hover {
+  background: #047857;
+}
+
+.cost-output {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.cost-card {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.cost-card h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cost-card .cost-icon {
+  font-size: 16px;
+}
+
+.cost-card table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+
+.cost-card td {
+  padding: 4px 0;
+}
+
+.cost-card td:last-child {
+  text-align: right;
+  font-family: monospace;
+}
+
+.cost-total {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.cost-total h4 {
+  color: #047857;
+}
+
+.cost-total .total-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #047857;
+  margin-top: 8px;
+}
+
+/* Tooltip for cost headers */
+.cost-card h4 {
+  position: relative;
+}
+
+.cost-card h4 .tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  background: #e5e7eb;
+  color: #6b7280;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.cost-card h4 .tooltip-trigger:hover {
+  background: #d1d5db;
+}
+
+.cost-card h4 .tooltip {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 6px;
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: normal;
+  white-space: pre-line;
+  min-width: 220px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cost-card h4 .tooltip::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 16px;
+  border: 6px solid transparent;
+  border-bottom-color: #1f2937;
+}
+
+.cost-card h4 .tooltip.show {
+  display: block;
+}

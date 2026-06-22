@@ -1,0 +1,6 @@
+from atsuite.cli.deploy import main
+
+
+if __name__ == "__main__":
+    main()
+
