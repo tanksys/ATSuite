@@ -1,0 +1,105 @@
+{
+  "trace_path": "/home/zyhubuntu/Documents/python/atsuite/benchmarks/ScientificComputation/trace/gemini-flash-task002.json",
+  "config_path": "/home/zyhubuntu/Documents/python/atsuite/benchmarks/ScientificComputation/config/faas3_mcp2_min.json",
+  "node_range": [
+    16,
+    16
+  ],
+  "uid": "sc_node2_seed",
+  "provider": "ali_fc",
+  "services": {
+    "tensor_workspace": {
+      "snapshot_key": "tensor_workspace/sc_node2_seed.json",
+      "snapshot": {
+        "version": 1,
+        "vars": {
+          "atsuite_microtrace_tensor_workspace_tensor_workspace": {
+            "tensor_workspace": {
+              "tensors": {
+                "M1": [
+                  [
+                    4.0,
+                    2.0,
+                    1.0
+                  ],
+                  [
+                    2.0,
+                    3.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    0.0,
+                    2.0
+                  ]
+                ],
+                "M2": [
+                  [
+                    1.0,
+                    0.0,
+                    2.0
+                  ],
+                  [
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  [
+                    2.0,
+                    1.0,
+                    3.0
+                  ]
+                ],
+                "v1": [
+                  1.0,
+                  2.0,
+                  3.0
+                ],
+                "v2": [
+                  3.0,
+                  2.0,
+                  1.0
+                ],
+                "M_sum": [
+                  [
+                    5.0,
+                    2.0,
+                    3.0
+                  ],
+                  [
+                    2.0,
+                    4.0,
+                    1.0
+                  ],
+                  [
+                    3.0,
+                    1.0,
+                    5.0
+                  ]
+                ],
+                "M_diff": [
+                  [
+                    3.0,
+                    2.0,
+                    -1.0
+                  ],
+                  [
+                    2.0,
+                    2.0,
+                    -1.0
+                  ],
+                  [
+                    -1.0,
+                    -1.0,
+                    -1.0
+                  ]
+                ]
+              }
+            }
+          }
+        },
+        "files": {}
+      }
+    }
+  }
+}

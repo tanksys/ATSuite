@@ -1,0 +1,47 @@
+{
+  "name": "trace_20260327_222416",
+  "description": "Auto-extracted ATSuite trace",
+  "discription": "Auto-extracted ATSuite trace",
+  "deploy_config": "",
+  "nodes": [
+    {
+      "id": 0,
+      "name": "start",
+      "type": "logic",
+      "edge_to": [
+        {
+          "id": 16,
+          "params": {
+            "input": {
+              "name_a": "M1",
+              "name_b": "M2",
+              "output_name": "M_prod"
+            }
+          },
+          "interval": 0
+        }
+      ],
+      "time": 0,
+      "output": ""
+    },
+    {
+      "id": 16,
+      "name": "scientific_computing.multiply_matrices",
+      "type": "tool_use",
+      "edge_to": [],
+      "time": 0,
+      "output": ""
+    }
+  ],
+  "microtrace": {
+    "node_range": [
+      16,
+      16
+    ],
+    "source_trace_name": "trace_20260327_222416",
+    "source_trace_path": "/home/zyhubuntu/Documents/python/atsuite/benchmarks/ScientificComputation/trace/gemini-flash-task002.json",
+    "config_path": "/home/zyhubuntu/Documents/python/atsuite/benchmarks/ScientificComputation/config/faas3_mcp3_min.json",
+    "provider": "ali_fc",
+    "uid": "sc_node2_seed"
+  }
+}
