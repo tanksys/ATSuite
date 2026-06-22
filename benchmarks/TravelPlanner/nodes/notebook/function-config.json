@@ -1,0 +1,48 @@
+{
+    "name": "notebook",
+    "python-version": "3.10",
+    "functions": [
+        {
+            "name": "notebook.write",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "notebook.update",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "notebook.list",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "notebook.list_all",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "notebook.read",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "notebook.reset",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        }
+    ]
+}

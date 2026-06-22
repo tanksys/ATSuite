@@ -1,0 +1,27 @@
+{
+    "name": "google_distance_matrix",
+    "python-version": "3.10",
+    "functions": [
+        {
+            "name": "google_distance_matrix.run",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "google_distance_matrix.run_for_evaluation",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        },
+        {
+            "name": "google_distance_matrix.run_for_annotation",
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+        }
+    ]
+}

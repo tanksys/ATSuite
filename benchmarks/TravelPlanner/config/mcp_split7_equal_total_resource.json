@@ -1,0 +1,150 @@
+{
+  "trace_file": "./trace/ds-nothinking.json",
+  "nodes": [
+    {
+      "name": "accommodations",
+      "dir": "./nodes/accommodations",
+      "trace_names": [
+        "accommodations.run"
+      ]
+    },
+    {
+      "name": "attractions",
+      "dir": "./nodes/attractions",
+      "trace_names": [
+        "attractions.run"
+      ]
+    },
+    {
+      "name": "cities",
+      "dir": "./nodes/cities",
+      "trace_names": [
+        "cities.run"
+      ]
+    },
+    {
+      "name": "flights",
+      "dir": "./nodes/flights",
+      "trace_names": [
+        "flights.run",
+        "flights.run_for_annotation"
+      ]
+    },
+    {
+      "name": "google_distance_matrix",
+      "dir": "./nodes/google_distance_matrix",
+      "trace_names": [
+        "googleDistanceMatrix.run"
+      ]
+    },
+    {
+      "name": "notebook",
+      "dir": "./nodes/notebook",
+      "trace_names": [
+        "notebook.write",
+        "notebook.list_all",
+        "notebook.reset"
+      ]
+    },
+    {
+      "name": "restaurants",
+      "dir": "./nodes/restaurants",
+      "trace_names": [
+        "restaurants.run"
+      ]
+    }
+  ],
+  "pipeline": {
+    "mcp_serverless": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "servers": [
+        {
+          "name": "accommodations",
+          "nodes": [
+            "accommodations"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "attractions",
+          "nodes": [
+            "attractions"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "cities",
+          "nodes": [
+            "cities"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "flights",
+          "nodes": [
+            "flights"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "google_distance_matrix",
+          "nodes": [
+            "google_distance_matrix"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "notebook",
+          "nodes": [
+            "notebook"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "restaurants",
+          "nodes": [
+            "restaurants"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        }
+      ]
+    }
+  }
+}
