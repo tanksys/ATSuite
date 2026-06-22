@@ -1,0 +1,104 @@
+{
+  "name": "tensor_workspace",
+  "python-version": "3.10",
+  "functions": [
+    {
+      "name": "scicom_create_tensor",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_delete_tensor",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_add_matrices",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_scale_matrix",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_determinant",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_matrix_inverse",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_svd_decompose",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_compute_eigen",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_qr_decompose",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_find_orthonormal_basis",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_change_basis",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_rank",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_vector_dot_product",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    },
+    {
+      "name": "scicom_vector_cross_product",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 1024,
+      "timeout": 120
+    }
+  ]
+}

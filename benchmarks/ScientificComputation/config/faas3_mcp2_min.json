@@ -1,0 +1,262 @@
+{
+  "trace_file": "../microbench/ScientificComputation16/gemini-flash-task002.microtrace.json",
+  "nodes": [
+    {
+      "name": "tensor_workspace",
+      "dir": "./nodes/tensor_workspace",
+      "trace_names": [
+        {
+          "name": "scientific_computing.create_tensor",
+          "tool": "scicom_create_tensor",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.view_tensor",
+          "tool": "scicom_view_tensor",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.list_tensor_names",
+          "tool": "scicom_list_tensor_names",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.delete_tensor",
+          "tool": "scicom_delete_tensor",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.add_matrices",
+          "tool": "scicom_add_matrices",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.subtract_matrices",
+          "tool": "scicom_subtract_matrices",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.multiply_matrices",
+          "tool": "scicom_multiply_matrices",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.scale_matrix",
+          "tool": "scicom_scale_matrix",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.transpose",
+          "tool": "scicom_transpose",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.determinant",
+          "tool": "scicom_determinant",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.svd_decompose",
+          "tool": "scicom_svd_decompose",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.matrix_inverse",
+          "tool": "scicom_matrix_inverse",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.compute_eigen",
+          "tool": "scicom_compute_eigen",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.qr_decompose",
+          "tool": "scicom_qr_decompose",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.find_orthonormal_basis",
+          "tool": "scicom_find_orthonormal_basis",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.change_basis",
+          "tool": "scicom_change_basis",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.rank",
+          "tool": "scicom_rank",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.vector_dot_product",
+          "tool": "scicom_vector_dot_product",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.vector_cross_product",
+          "tool": "scicom_vector_cross_product",
+          "stateful": true
+        },
+        {
+          "name": "scientific_computing.vector_project",
+          "tool": "scicom_vector_project",
+          "stateful": true
+        }
+      ]
+    },
+    {
+      "name": "vector_calculus",
+      "dir": "./nodes/vector_calculus",
+      "trace_names": [
+        {
+          "name": "scientific_computing.gradient",
+          "tool": "scicom_gradient",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.curl",
+          "tool": "scicom_curl",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.divergence",
+          "tool": "scicom_divergence",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.laplacian",
+          "tool": "scicom_laplacian",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.directional_deriv",
+          "tool": "scicom_directional_deriv",
+          "stateful": false
+        }
+      ]
+    },
+    {
+      "name": "visualization",
+      "dir": "./nodes/visualization",
+      "trace_names": [
+        {
+          "name": "scientific_computing.plot_vector_field",
+          "tool": "scicom_plot_vector_field",
+          "stateful": false
+        },
+        {
+          "name": "scientific_computing.plot_function",
+          "tool": "scicom_plot_function",
+          "stateful": false
+        }
+      ]
+    }
+  ],
+  "pipeline": {
+    "faas": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "units": [
+        {
+          "name": "tensor_workspace",
+          "node": "tensor_workspace",
+          "trace_names": [
+            "scientific_computing.create_tensor",
+            "scientific_computing.add_matrices",
+            "scientific_computing.subtract_matrices",
+            "scientific_computing.multiply_matrices",
+            "scientific_computing.scale_matrix",
+            "scientific_computing.determinant",
+            "scientific_computing.matrix_inverse",
+            "scientific_computing.compute_eigen",
+            "scientific_computing.qr_decompose",
+            "scientific_computing.find_orthonormal_basis",
+            "scientific_computing.change_basis",
+            "scientific_computing.rank",
+            "scientific_computing.vector_dot_product",
+            "scientific_computing.vector_cross_product",
+            "scientific_computing.vector_project",
+            "scientific_computing.view_tensor",
+            "scientific_computing.list_tensor_names",
+            "scientific_computing.delete_tensor",
+            "scientific_computing.transpose",
+            "scientific_computing.svd_decompose"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 120
+          }
+        },
+        {
+          "name": "vector_calculus",
+          "node": "vector_calculus",
+          "trace_names": [
+            "scientific_computing.gradient",
+            "scientific_computing.curl",
+            "scientific_computing.divergence",
+            "scientific_computing.laplacian",
+            "scientific_computing.directional_deriv"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 120
+          }
+        },
+        {
+          "name": "visualization",
+          "node": "visualization",
+          "trace_names": [
+            "scientific_computing.plot_vector_field",
+            "scientific_computing.plot_function"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 120
+          }
+        }
+      ]
+    },
+    "mcp_serverless": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "servers": [
+        {
+          "name": "tensor_workspace",
+          "nodes": [
+            "tensor_workspace"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 120
+          }
+        },
+        {
+          "name": "vector_calculus",
+          "nodes": [
+            "vector_calculus",
+            "visualization"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 120
+          }
+        }
+      ]
+    }
+  }
+}

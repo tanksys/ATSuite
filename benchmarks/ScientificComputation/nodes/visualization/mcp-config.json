@@ -1,0 +1,9 @@
+{
+  "name": "visualization",
+  "description": "ScientificComputation plotting tools",
+  "python-version": "3.10",
+  "cpu": 2,
+  "memory": 2048,
+  "disk": 1024,
+  "timeout": 60
+}
