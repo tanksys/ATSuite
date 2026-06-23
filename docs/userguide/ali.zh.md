@@ -79,7 +79,7 @@ uv run -m tools.invoker --config benchmarks/soccer/config/detect_league_function
 Running node: 0, name: start, type: logic, time: 0.0
 Running node: 1, name: llm-thought-step1, type: llm, time: 1521.4295029873028
 Running node: 2, name: llm-action-step1, type: llm, time: 1346.1970059433952
-Running node: 3, name: detect_league.run, type: function, time: 0.003196997568011284
+Running node: 3, name: detect_league.run, type: tool_use, time: 0.003196997568011284
 Running node: 4, name: llm-thought-step2, type: llm, time: 2301.0629700729623
 Running node: 5, name: llm-action-step2, type: llm, time: 1195.8588510751724
 ```
@@ -108,13 +108,13 @@ source ~/.bashrc
 2. 构建本地 docker 镜像，在项目根目录运行  
 
 ```bash
-uv run -m tools.build_docker_images --config benchmarks/TravelPlanner/config/notebook_mcp.json --provider ali
+uv run -m tools.build_docker_images --config benchmarks/TravelPlanner/config/notebook_mcp.json --provider ali_agentrun
 ```
 
 3. 将本地镜像上传到阿里云 ACR，在 FC 创建事件函数与对应 HTTP 触发器，在项目根目录运行
 
 ```bash
-uv run -m tools.deploy --config benchmarks/TravelPlanner/config/notebook_mcp.json --provider ali
+uv run -m tools.deploy --config benchmarks/TravelPlanner/config/notebook_mcp.json --provider ali_agentrun
 ```
 
 运行成功后，会在 url_results/ 文件夹下看到新生成的 json 文件（示例文件是 notebook_mcp.json），里面保存了 HTTP 触发器的公网访问地址   
@@ -122,22 +122,22 @@ uv run -m tools.deploy --config benchmarks/TravelPlanner/config/notebook_mcp.jso
 4. 运行 invoker 进行测试，在项目根目录运行
 
 ```bash
-uv run -m tools.invoker --config benchmarks/TravelPlanner/config/notebook_mcp.json --url-map url_results/notebook_mcp.json --uid abc
+uv run -m tools.invoker --config benchmarks/TravelPlanner/config/notebook_mcp.json --url-map url_results/notebook_mcp.json --provider ali_agentrun --uid abc
 ```
 
 如果输出类似
 
 ```text
 Running node: 0, name: start, type: logic, time: 0.0
-Running node: 1, name: notebook.reset, type: tool, time: 0.0007040071068331599
+Running node: 1, name: notebook.reset, type: tool_use, time: 0.0007040071068331599
 Running node: 2, name: llm-thought-step2, type: llm, time: 3369.629763998091
 Running node: 3, name: llm-action-step3, type: llm, time: 6710.714197004563
-Running node: 4, name: notebook.write, type: tool, time: 0.006777991075068712
+Running node: 4, name: notebook.write, type: tool_use, time: 0.006777991075068712
 Running node: 5, name: llm-thought-step4, type: llm, time: 2036.3573969952995
 Running node: 6, name: llm-action-step8, type: llm, time: 1782.11894701235
-Running node: 7, name: notebook.write, type: tool, time: 0.002658998710103333
+Running node: 7, name: notebook.write, type: tool_use, time: 0.002658998710103333
 Running node: 8, name: llm-action-step12, type: llm, time: 2124.9955730017973
-Running node: 9, name: notebook.list_all, type: tool, time: 10.144970001420006
+Running node: 9, name: notebook.list_all, type: tool_use, time: 10.144970001420006
 Running node: 10, name: llm-action-step12, type: llm, time: 2124.9955730017973
 ```
 

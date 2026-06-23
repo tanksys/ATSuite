@@ -61,7 +61,7 @@ ATSuite currently works with these provider targets:
   External MCP-Gateway/router deployment. ATSuite registers MCP server images and replays against the returned endpoint; sandbox lifecycle is managed outside this project.
   Set `MCP_GATEWAY_URL` and `MCP_GATEWAY_IMAGE_PREFIX` before deploying to this provider.
 
-Provider-specific setup notes live under [`docs/`](./docs/).
+Provider-specific setup notes live under [`docs/userguide/`](./docs/userguide/), provider implementation notes live under [`docs/developer-guide/`](./docs/developer-guide/), and provider background notes live under [`docs/provider/`](./docs/provider/).
 
 ## Installation
 
@@ -153,7 +153,7 @@ atsuite/                Main runtime, deployment, provider, and analysis code
   cli/                First-class command implementations
 tools/                Compatibility CLI wrappers
 dockerfiles/          Provider-specific container build templates
-docs/                 Provider guides, workflow docs, and implementation notes
+docs/                 ATG docs, user guides, provider notes, and implementation notes
 web/trace_viewer/     Browser-based trace viewer
 benchmarks/legacy/    Unsupported(still in progress) legacy workloads, including sandbox-only traces
 ```
@@ -191,10 +191,13 @@ ATSuite replays prepared workflow traces. A trace is a JSON DAG made of `logic`,
 
 Useful starting points:
 
-- [`docs/workflow_spec.md`](./docs/workflow_spec.md): workflow DAG format
-- [`docs/aws.md`](./docs/aws.md): AWS notes
-- [`docs/gcp.md`](./docs/gcp.md): GCP notes
-- [`docs/ali.md`](./docs/ali.md): Alibaba Cloud notes
+- [`docs/atg/workflow_spec.md`](./docs/atg/workflow_spec.md): workflow DAG format
+- [`docs/atg/node_config.md`](./docs/atg/node_config.md): benchmark node and pipeline configuration
+- [`docs/userguide/aws.md`](./docs/userguide/aws.md): AWS setup and deployment guide
+- [`docs/userguide/gcp.md`](./docs/userguide/gcp.md): GCP setup and deployment guide
+- [`docs/userguide/ali.md`](./docs/userguide/ali.md): Alibaba Cloud setup and deployment guide
+- [`docs/developer-guide/ali_deployment_design.md`](./docs/developer-guide/ali_deployment_design.md): Alibaba Cloud deployment implementation notes
+- [`docs/provider/overview.md`](./docs/provider/overview.md): cloud service map
 - [`web/trace_viewer/README.md`](./web/trace_viewer/README.md): trace viewer usage
 
 ## Creating New Benchmark Nodes
@@ -211,7 +214,7 @@ def my_tool(param: str) -> str:
     return "result"
 ```
 
-To convert an existing agent tool into an ATSuite node layout, see [`docs/AGENT_TOOL_CONVERSION_GUIDE.md`](./docs/AGENT_TOOL_CONVERSION_GUIDE.md).
+To convert an existing agent tool into an ATSuite node layout, see [`docs/atg/tool_conversion.md`](./docs/atg/tool_conversion.md).
 
 ## Current Scope
 

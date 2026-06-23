@@ -184,11 +184,11 @@ def {tool_name}_method_name({converted_parameters}, uid: str, _storage=None, _ui
 }
 ```
 
-**说明：**
-- `cpu`: CPU 核心数（默认 1）
-- `memory`: 内存大小（MB，默认 1024）
-- `disk`: 磁盘空间（MB，默认 512）
-- `timeout`: 超时时间（秒，默认 30）
+**Notes:**
+- `cpu`: CPU cores. Default: `1`.
+- `memory`: memory size in MB. Default: `1024`.
+- `disk`: temporary disk size in MB. Default: `512`.
+- `timeout`: timeout in seconds. Default: `30`.
 
 
 ### 3. mcp-config.json
@@ -214,7 +214,7 @@ pandas
 
 ### 5. init.sh (Optional)
 
-用于在构建 Docker 镜像时复制数据文件到镜像中。
+Use `init.sh` to copy data files into the Docker image during build.
 
 ```bash
 #! /bin/bash
@@ -233,15 +233,15 @@ fi
 cp "${SRC_PATH}" "${DST_PATH}"
 ```
 
-**说明：**
-- `SCRIPT_DIR`：获取 `init.sh` 所在目录
-- `HOME_DIR`：向上 5 层目录，从 `dist/{benchmark}/{tool}/` 到 `/home/{user}/`
-- `ATSUITE_DATA_PATH`：可通过环境变量覆盖数据路径
-- `{benchmark_name}`：基准测试名称（如 `travelplanner`）
-- `{tool_name}`：工具名称（如 `flights`, `restaurants`, `accommodations`）
-- `{data_filename}`：数据文件名（如 `clean_Flights_2022.csv`）
+**Notes:**
+- `SCRIPT_DIR`: directory containing `init.sh`.
+- `HOME_DIR`: moves 5 levels up from `dist/{benchmark}/{tool}/` to `/home/{user}/`.
+- `ATSUITE_DATA_PATH`: optional environment variable for overriding the data path.
+- `{benchmark_name}`: benchmark name, such as `travelplanner`.
+- `{tool_name}`: tool name, such as `flights`, `restaurants`, or `accommodations`.
+- `{data_filename}`: data filename, such as `clean_Flights_2022.csv`.
 
-**示例：**
+**Examples:**
 - `flights/init.sh` → `.../atsuite_data/travelplanner/flights/clean_Flights_2022.csv`
 - `restaurants/init.sh` → `.../atsuite_data/travelplanner/restaurants/clean_restaurant_2022.csv`
 
