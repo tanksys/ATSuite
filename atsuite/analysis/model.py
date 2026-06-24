@@ -276,6 +276,7 @@ class AnalysisReport:
     costs: List[Dict[str, Any]]
     diagnostics: List[Dict[str, Any]]
     evidence_path: str = ""
+    trace_path: str = ""
     report_path: str = ""
 
     def to_dict(self) -> Dict[str, Any]:

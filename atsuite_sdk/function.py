@@ -28,6 +28,14 @@ def _ns_to_ms(delta_ns: int) -> float:
     return round(delta_ns / 1_000_000, 3)
 
 
+def _wall_from_monotonic_delta(ctx: Dict[str, object], event_ns: int | None) -> int | None:
+    request_wall_ns = ctx.get("request_wall_ns")
+    request_start_ns = ctx.get("request_start_ns")
+    if request_wall_ns is None or request_start_ns is None or event_ns is None:
+        return None
+    return int(request_wall_ns) + max(0, int(event_ns) - int(request_start_ns))
+
+
 def _extract_xray_root_trace_id() -> str:
     header = os.environ.get("_X_AMZN_TRACE_ID", "").strip()
     if not header:
@@ -75,6 +83,10 @@ def _build_function_breakdown_payload(
         "state_sync_overhead_ms": state_sync_overhead_ms,
         "framework_overhead_ms": framework_overhead_ms,
         "request_wall_ns": request_wall_ns,
+        "request_start_wall_ns": _wall_from_monotonic_delta(ctx, int(request_start_ns)),
+        "request_end_wall_ns": _wall_from_monotonic_delta(ctx, request_end_ns),
+        "tool_start_wall_ns": _wall_from_monotonic_delta(ctx, int(tool_start_ns)),
+        "tool_end_wall_ns": _wall_from_monotonic_delta(ctx, int(tool_end_ns)),
         "pre_tool_ms": pre_tool_ms,
         "post_tool_ms": post_tool_ms,
         "trace_id": _extract_xray_root_trace_id(),

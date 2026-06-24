@@ -481,6 +481,7 @@ def run_trace(
         "summary": {},
         "report_path": "",
         "evidence_path": "",
+        "trace_path": "",
     }
 
     try:
@@ -541,6 +542,7 @@ def run_trace(
                 result["summary"] = analyzer_report.summary
                 result["report_path"] = analyzer_report.report_path
                 result["evidence_path"] = analyzer_report.evidence_path
+                result["trace_path"] = analyzer_report.trace_path
                 result["events_path"] = analyzer.events_path
             else:
                 result["summary"].setdefault(

@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import contextlib
 import io
+import importlib
 import os
+import sys
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -12,10 +14,16 @@ from unittest import mock
 
 from atsuite import invoker as invoker_module
 from atsuite.analysis.api import AnalyzeOptions, analyze_events, analyze_recorder
-from atsuite.analysis.collectors import AWSCloudWatchCollector, GCPCloudLoggingCollector, NoopCollector
+from atsuite.analysis.collectors import (
+    AWSCloudWatchCollector,
+    AliSLSCollector,
+    GCPCloudLoggingCollector,
+    NoopCollector,
+)
 from atsuite.analysis.model import CollectionResult, CostLineItem, EvidenceRecord, ProviderMetric
 from atsuite.analysis.observer import RunRecorder
 from atsuite.analysis.pricing import create_pricing_policy
+from atsuite.analysis.timeline import TimelineBuilder
 from atsuite.pipeline import resolve_benchmark
 from atsuite.runtime import InvocationResult, RuntimeCapabilities, RuntimeSession
 
@@ -106,6 +114,12 @@ class AnalysisV2PipelineTests(unittest.TestCase):
                                 "client_e2e_ms": 30.0,
                                 "tool_exec_ms": 20.0,
                                 "memory_usage_mb": 128.0,
+                                "request_start_wall_ns": 1_000_000_000,
+                                "request_end_wall_ns": 1_030_000_000,
+                                "tool_start_wall_ns": 1_005_000_000,
+                                "tool_end_wall_ns": 1_025_000_000,
+                                "time_source": "sdk_wall_clock",
+                                "confidence": "sdk_wall_clock",
                             },
                             evidence_refs=["ev1"],
                         )
@@ -155,6 +169,7 @@ class AnalysisV2PipelineTests(unittest.TestCase):
                 call_id="call-1",
                 status="ok",
                 provider_request_id="provider-1",
+                client_start_time=1.001,
                 client_elapsed_ms=30.0,
             )
             recorder.finish_node(1, end_time=1.03)
@@ -173,9 +188,26 @@ class AnalysisV2PipelineTests(unittest.TestCase):
             self.assertEqual(report.summary["total_price"], 0.123)
             self.assertEqual(report.nodes["1"]["tool_exec_ms"], 20.0)
             self.assertTrue(Path(report.report_path).exists())
+            self.assertTrue(Path(report.trace_path).exists())
             evidence_lines = Path(report.evidence_path).read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(evidence_lines), 1)
             self.assertEqual(json.loads(evidence_lines[0])["raw"]["full"]["provider"], "payload")
+            trace_payload = json.loads(Path(report.trace_path).read_text(encoding="utf-8"))
+            self.assertEqual(trace_payload["displayTimeUnit"], "ms")
+            event_names = {event.get("name") for event in trace_payload["traceEvents"]}
+            self.assertIn("run", event_names)
+            self.assertIn("tool_use:1:tool.run", event_names)
+            self.assertNotIn("node:1:tool.run", event_names)
+            self.assertIn("app_request:1", event_names)
+            self.assertIn("tool_exec:1:tool_run", event_names)
+            client_process_sort = [
+                event
+                for event in trace_payload["traceEvents"]
+                if event.get("ph") == "M"
+                and event.get("name") == "process_sort_index"
+                and event.get("pid") == "client"
+            ]
+            self.assertEqual(client_process_sort[0]["args"]["sort_index"], 0)
 
     def test_analyze_recorder_delegates_ingestion_wait_to_collector(self) -> None:
         class WaitingCollector:
@@ -217,6 +249,134 @@ class AnalysisV2PipelineTests(unittest.TestCase):
         self.assertTrue(collector.waited)
 
 
+class AnalysisV2TimelineTests(unittest.TestCase):
+    def test_timeline_builder_emits_client_only_trace_with_missing_cloud_diagnostic(self) -> None:
+        recorder = RunRecorder(
+            provider="mcp_gateway",
+            observability_provider="none",
+            benchmark="Bench",
+            trace="trace",
+            family="session",
+            config_path="/tmp/config.json",
+        )
+        recorder.start_run("u1", start_time=100.0)
+        recorder.record_session_open(
+            target_id="server",
+            runtime_name="server",
+            provider_session_id="session-1",
+            initialize_request_id="init-1",
+            opened_at=100.005,
+        )
+        recorder.start_node(node_id=1, node_name="tool.run", node_type="mcp", start_time=100.01)
+        recorder.record_invocation(
+            node_id=1,
+            node_name="tool.run",
+            target_id="server",
+            runtime_name="server",
+            family="session",
+            tool_name="tool_run",
+            call_id="call-1",
+            status="ok",
+            provider_request_id="provider-1",
+            client_start_time=100.02,
+            client_elapsed_ms=15.0,
+        )
+        recorder.finish_node(1, end_time=100.04)
+        recorder.finish_run(end_time=100.05)
+
+        trace_payload = TimelineBuilder().build(
+            recorder.context,
+            nodes=recorder.nodes,
+            invocations=recorder.invocations,
+            sessions=recorder.sessions,
+            metrics=[],
+            diagnostics=[{"kind": "unmatched_request_id", "request_id": "provider-1"}],
+        )
+        event_names = {event.get("name") for event in trace_payload["traceEvents"]}
+        self.assertIn("client_send:1", event_names)
+        self.assertIn("client_receive:1", event_names)
+        self.assertIn("missing_cloud_receive_timestamp:1", event_names)
+        self.assertIn("diagnostic:unmatched_request_id", event_names)
+        session_events = [
+            event
+            for event in trace_payload["traceEvents"]
+            if event.get("name") == "session_open:server"
+        ]
+        self.assertEqual(session_events[0]["pid"], "provider:server")
+        self.assertNotEqual(session_events[0]["pid"], "client")
+
+    def test_timeline_builder_preserves_overlapping_client_lanes(self) -> None:
+        recorder = RunRecorder(
+            provider="mcp_gateway",
+            observability_provider="none",
+            benchmark="Bench",
+            trace="trace",
+            family="session",
+            config_path="/tmp/config.json",
+        )
+        recorder.start_run("u1", start_time=100.0)
+        recorder.start_node(node_id=1, node_name="a", node_type="llm", start_time=100.0)
+        recorder.finish_node(1, end_time=100.1)
+        recorder.start_node(node_id=2, node_name="b", node_type="llm", start_time=100.05)
+        recorder.finish_node(2, end_time=100.15)
+        recorder.start_node(node_id=3, node_name="tool.a", node_type="mcp", start_time=100.0)
+        recorder.record_invocation(
+            node_id=3,
+            node_name="tool.a",
+            target_id="server-a",
+            runtime_name="server-a",
+            family="session",
+            tool_name="tool_a",
+            call_id="call-a",
+            status="ok",
+            provider_request_id="provider-a",
+            client_start_time=100.02,
+            client_elapsed_ms=100.0,
+        )
+        recorder.finish_node(3, end_time=100.12)
+        recorder.start_node(node_id=4, node_name="tool.b", node_type="mcp", start_time=100.03)
+        recorder.record_invocation(
+            node_id=4,
+            node_name="tool.b",
+            target_id="server-b",
+            runtime_name="server-b",
+            family="session",
+            tool_name="tool_b",
+            call_id="call-b",
+            status="ok",
+            provider_request_id="provider-b",
+            client_start_time=100.04,
+            client_elapsed_ms=100.0,
+        )
+        recorder.finish_node(4, end_time=100.14)
+        recorder.finish_run(end_time=100.2)
+
+        trace_payload = TimelineBuilder().build(
+            recorder.context,
+            nodes=recorder.nodes,
+            invocations=recorder.invocations,
+            sessions=[],
+            metrics=[],
+        )
+        spans = {
+            event["name"]: event
+            for event in trace_payload["traceEvents"]
+            if event.get("ph") == "X"
+        }
+        self.assertLess(spans["llm:1:a"]["ts"], spans["llm:2:b"]["ts"])
+        self.assertGreater(
+            spans["llm:1:a"]["ts"] + spans["llm:1:a"]["dur"],
+            spans["llm:2:b"]["ts"],
+        )
+        self.assertNotEqual(spans["llm:1:a"]["tid"], spans["llm:2:b"]["tid"])
+        self.assertNotEqual(
+            spans["tool_use:3:tool.a"]["tid"],
+            spans["tool_use:4:tool.b"]["tid"],
+        )
+        self.assertTrue(spans["tool_use:3:tool.a"]["tid"].startswith("tool_use/"))
+        self.assertTrue(spans["tool_use:4:tool.b"]["tid"].startswith("tool_use/"))
+
+
 class AnalysisV2CollectorAndPricingTests(unittest.TestCase):
     def test_noop_collector_uses_runtime_invocation_metadata(self) -> None:
         recorder = RunRecorder(
@@ -249,6 +409,98 @@ class AnalysisV2CollectorAndPricingTests(unittest.TestCase):
         self.assertEqual(result.metrics[0].fields["client_e2e_ms"], 12.5)
         self.assertEqual(result.metrics[0].provider_request_id, "provider")
 
+    def test_ali_collector_joins_sls_metrics_and_sdk_breakdown(self) -> None:
+        class FakeSLS:
+            def __init__(self) -> None:
+                self.metric_queries = []
+                self.breakdown_queries = []
+
+            def getlogs(self, logstore, from_time, to_time, query):
+                self.metric_queries.append((logstore, query))
+                return {
+                    "duration_ms": 25.0,
+                    "memory_usage_mb": 128.0,
+                    "is_cold_start": "false",
+                    "schedule_latency_ms": 3.0,
+                    "invoker_function_ms": 28.0,
+                    "invokeFunctionStartTimestamp": 1_782_287_896_500,
+                }
+
+            def getbreakdownlogs(self, logstore, from_time, to_time, query):
+                self.breakdown_queries.append((logstore, query))
+                return [
+                    {
+                        "event": "uaib_function_breakdown",
+                        "request_id": "call-1",
+                        "app_e2e_ms": 20.0,
+                        "tool_exec_ms": 12.0,
+                        "pre_tool_ms": 4.0,
+                        "post_tool_ms": 4.0,
+                        "request_start_wall_ns": 1_782_287_896_501_000_000,
+                        "request_end_wall_ns": 1_782_287_896_521_000_000,
+                        "tool_start_wall_ns": 1_782_287_896_505_000_000,
+                        "tool_end_wall_ns": 1_782_287_896_517_000_000,
+                    }
+                ]
+
+        recorder = RunRecorder(
+            provider="ali_fc",
+            observability_provider="ali_sls",
+            benchmark="Bench",
+            trace="trace",
+            family="faas",
+            config_path="/tmp/config.json",
+        )
+        recorder.start_run("u1", start_time=1.0)
+        recorder.start_node(
+            node_id=1,
+            node_name="tool.run",
+            node_type="function",
+            runtime_name="server",
+            target_id="server",
+            family="faas",
+            runtime_config={"memory": 128},
+            start_time=1.0,
+        )
+        recorder.record_invocation(
+            node_id=1,
+            node_name="tool.run",
+            target_id="server",
+            runtime_name="server",
+            family="faas",
+            tool_name="tool_run",
+            call_id="call-1",
+            status="ok",
+            provider_request_id="provider-1",
+            client_elapsed_ms=30.0,
+        )
+
+        fake = FakeSLS()
+        collector = AliSLSCollector(project="atsuite", location="us-east-1")
+        collector._sls = fake
+        collector._sls_clients["uaibs"] = fake
+        collector._log_destinations["server-function"] = ("uaibs", "server-function")
+        result = collector.collect(
+            recorder.context,
+            nodes=recorder.nodes,
+            invocations=recorder.invocations,
+            sessions=recorder.sessions,
+        )
+
+        metric = result.metrics[0]
+        self.assertEqual(fake.metric_queries[0][0], "server-function")
+        self.assertEqual(result.evidence[0].query["project"], "uaibs")
+        self.assertEqual(result.evidence[0].query["configured_project"], "atsuite")
+        self.assertIn("durationMs", fake.metric_queries[0][1])
+        self.assertEqual(fake.breakdown_queries, [("server-function", "app_e2e_ms")])
+        self.assertEqual(metric.fields["app_e2e_ms"], 20.0)
+        self.assertEqual(metric.fields["tool_exec_ms"], 12.0)
+        self.assertEqual(metric.fields["provider_receive_wall_ns"], 1_782_287_896_500_000_000)
+        self.assertEqual(metric.fields["provider_response_wall_ns"], 1_782_287_896_525_000_000)
+        self.assertFalse(
+            any(item.get("kind") == "unmatched_request_id" for item in result.diagnostics)
+        )
+
     def test_gcp_collector_indexes_trace_join_and_breakdown(self) -> None:
         entries = [
             {
@@ -259,6 +511,7 @@ class AnalysisV2CollectorAndPricingTests(unittest.TestCase):
             {
                 "trace": "trace-1",
                 "httpRequest": {"latency": "0.123s", "status": 200},
+                "timestamp": "1970-01-01T00:00:10.123Z",
                 "resource": {"labels": {"service_name": "svc"}},
             },
             {
@@ -266,12 +519,19 @@ class AnalysisV2CollectorAndPricingTests(unittest.TestCase):
                     "event": "atsuite_mcp_breakdown",
                     "request_id": "rid-1",
                     "tool_exec_ms": 42.0,
+                    "request_start_wall_ns": 10_000_000_000,
+                    "request_end_wall_ns": 10_050_000_000,
+                    "tool_start_wall_ns": 10_005_000_000,
+                    "tool_end_wall_ns": 10_047_000_000,
                 }
             },
         ]
         indexed = GCPCloudLoggingCollector()._index_entries(entries)
         self.assertAlmostEqual(indexed["rid-1"]["latency_ms"], 123.0)
         self.assertEqual(indexed["rid-1"]["tool_exec_ms"], 42.0)
+        self.assertEqual(indexed["rid-1"]["request_start_wall_ns"], 10_000_000_000)
+        self.assertEqual(indexed["rid-1"]["provider_receive_wall_ns"], 10_000_000_000)
+        self.assertEqual(indexed["rid-1"]["provider_response_wall_ns"], 10_123_000_000)
 
     def test_gcp_pricing_uses_100ms_request_rounding(self) -> None:
         metric = ProviderMetric(
@@ -294,6 +554,84 @@ class AnalysisV2CollectorAndPricingTests(unittest.TestCase):
         )
         total = sum(item.amount for item in costs)
         self.assertAlmostEqual(total, 0.0000072 + 0.00000075 + 0.0000004)
+
+    def test_aws_lambda_collector_populates_breakdown_and_provider_timestamps(self) -> None:
+        class FakeCloudWatch:
+            def get_logs(self, resource_type, resource_name, start_time, end_time, request_id=None):
+                return [
+                    {
+                        "timestamp": "1970-01-01T00:00:10.050Z",
+                        "message": json.dumps(
+                            {
+                                "event": "atsuite_function_breakdown",
+                                "request_id": "aws-request-1",
+                                "app_e2e_ms": 20.0,
+                                "tool_exec_ms": 12.0,
+                                "request_start_wall_ns": 10_000_000_000,
+                                "request_end_wall_ns": 10_020_000_000,
+                                "tool_start_wall_ns": 10_004_000_000,
+                                "tool_end_wall_ns": 10_016_000_000,
+                            }
+                        ),
+                    }
+                ]
+
+            def parse_logs(self, resource_type, logs):
+                return {
+                    "duration_ms": 25.0,
+                    "billed_duration_ms": 100,
+                    "memory_used_mb": 64,
+                    "memory_limit_mb": 128,
+                    "init_duration_ms": 0.0,
+                    "is_cold_start": False,
+                }
+
+        recorder = RunRecorder(
+            provider="aws_lambda",
+            observability_provider="aws_lambda_cloudwatch",
+            benchmark="Bench",
+            trace="trace",
+            family="faas",
+            config_path="/tmp/config.json",
+        )
+        recorder.start_run("u1", start_time=1.0)
+        recorder.start_node(
+            node_id=1,
+            node_name="tool.run",
+            node_type="function",
+            runtime_name="server",
+            target_id="server",
+            family="faas",
+            runtime_config={"memory": 128},
+            start_time=1.0,
+        )
+        recorder.record_invocation(
+            node_id=1,
+            node_name="tool.run",
+            target_id="server",
+            runtime_name="server",
+            family="faas",
+            tool_name="tool_run",
+            call_id="call-1",
+            status="ok",
+            provider_request_id="aws-request-1",
+            client_elapsed_ms=30.0,
+        )
+
+        collector = AWSCloudWatchCollector(agentcore=False, region="us-east-1")
+        collector._cloudwatch = FakeCloudWatch()
+        result = collector.collect(
+            recorder.context,
+            nodes=recorder.nodes,
+            invocations=recorder.invocations,
+            sessions=recorder.sessions,
+        )
+
+        metric = result.metrics[0]
+        self.assertEqual(metric.fields["request_start_wall_ns"], 10_000_000_000)
+        self.assertEqual(metric.fields["tool_end_wall_ns"], 10_016_000_000)
+        self.assertEqual(metric.fields["provider_response_wall_ns"], 10_050_000_000)
+        self.assertEqual(metric.fields["provider_receive_wall_ns"], 10_025_000_000)
 
     def test_agentcore_collector_joins_breakdown_by_call_id(self) -> None:
         class FakeCloudWatch:
@@ -318,6 +656,10 @@ class AnalysisV2CollectorAndPricingTests(unittest.TestCase):
                                 "app_e2e_ms": 12.0,
                                 "tool_exec_ms": 7.5,
                                 "framework_overhead_ms": 4.5,
+                                "request_start_wall_ns": 1_000_000_000,
+                                "request_end_wall_ns": 1_012_000_000,
+                                "tool_start_wall_ns": 1_002_000_000,
+                                "tool_end_wall_ns": 1_009_500_000,
                             }
                         )
                     }
@@ -386,6 +728,8 @@ class AnalysisV2CollectorAndPricingTests(unittest.TestCase):
         cloudwatch_metric = next(metric for metric in result.metrics if metric.source == "cloudwatch")
         self.assertEqual(cloudwatch_metric.fields["app_e2e_ms"], 12.0)
         self.assertEqual(cloudwatch_metric.fields["tool_exec_ms"], 7.5)
+        self.assertEqual(cloudwatch_metric.fields["request_start_wall_ns"], 1_000_000_000)
+        self.assertEqual(cloudwatch_metric.fields["tool_end_wall_ns"], 1_009_500_000)
         self.assertFalse(
             any(item.get("kind") == "unmatched_request_id" for item in result.diagnostics)
         )
@@ -536,6 +880,59 @@ class AnalysisV2CollectorAndPricingTests(unittest.TestCase):
         self.assertEqual(fake.calls, 2)
 
 
+class SDKBreakdownTimestampTests(unittest.TestCase):
+    def test_function_breakdown_payload_contains_absolute_wall_timestamps(self) -> None:
+        sys.modules.pop("atsuite_sdk.function", None)
+        with mock.patch.dict(os.environ, {"ATSUITE_NODE_MODULE": "json"}):
+            function_module = importlib.import_module("atsuite_sdk.function")
+
+        ctx = {
+            "request_id": "rid-1",
+            "tool_name": "tool_run",
+            "request_start_ns": 1_000,
+            "request_wall_ns": 10_000_000_000,
+            "tool_start_ns": 2_000,
+            "tool_end_ns": 5_000,
+            "state_sync_overhead_ms": 1.0,
+        }
+        payload = function_module._build_function_breakdown_payload(
+            ctx,
+            request_end_ns=7_000,
+            status=200,
+        )
+        self.assertIsNotNone(payload)
+        self.assertEqual(payload["request_start_wall_ns"], 10_000_000_000)
+        self.assertEqual(payload["tool_start_wall_ns"], 10_000_001_000)
+        self.assertEqual(payload["tool_end_wall_ns"], 10_000_004_000)
+        self.assertEqual(payload["request_end_wall_ns"], 10_000_006_000)
+
+    def test_mcp_breakdown_payload_contains_absolute_wall_timestamps(self) -> None:
+        sys.modules.pop("atsuite_sdk.mcp_server", None)
+        mcp_module = importlib.import_module("atsuite_sdk.mcp_server")
+
+        ctx = {
+            "request_id": "rid-1",
+            "jsonrpc_id": "call-1",
+            "jsonrpc_method": "tools/call",
+            "tool_name": "tool_run",
+            "request_start_ns": 1_000,
+            "request_wall_ns": 20_000_000_000,
+            "tool_start_ns": 3_000,
+            "tool_end_ns": 8_000,
+            "state_sync_overhead_ms": 0.5,
+        }
+        payload = mcp_module._build_mcp_breakdown_payload(
+            ctx,
+            request_end_ns=10_000,
+            status=200,
+        )
+        self.assertIsNotNone(payload)
+        self.assertEqual(payload["request_start_wall_ns"], 20_000_000_000)
+        self.assertEqual(payload["tool_start_wall_ns"], 20_000_002_000)
+        self.assertEqual(payload["tool_end_wall_ns"], 20_000_007_000)
+        self.assertEqual(payload["request_end_wall_ns"], 20_000_009_000)
+
+
 class InvokerAnalyzerBoundaryTests(unittest.TestCase):
     def test_invoker_no_longer_mentions_provider_specific_analyzer_hooks(self) -> None:
         source = Path("atsuite/invoker.py").read_text(encoding="utf-8")
@@ -671,6 +1068,7 @@ class InvokerAnalyzerBoundaryTests(unittest.TestCase):
         self.assertEqual(result["run"]["provider"], "mcp_gateway")
         self.assertIn("summary", result)
         self.assertEqual(result["summary"]["total_price"], 0.0)
+        self.assertIn("trace_path", result)
         self.assertEqual(len(fake_runtime.seen_call_ids), 1)
         self.assertTrue(fake_runtime.seen_call_ids[0].startswith("u1_1_"))
 

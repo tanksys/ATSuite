@@ -38,6 +38,14 @@ def _ns_to_ms(delta_ns: int) -> float:
     return round(delta_ns / 1_000_000, 3)
 
 
+def _wall_from_monotonic_delta(ctx: dict, event_ns: int | None) -> int | None:
+    request_wall_ns = ctx.get("request_wall_ns")
+    request_start_ns = ctx.get("request_start_ns")
+    if request_wall_ns is None or request_start_ns is None or event_ns is None:
+        return None
+    return int(request_wall_ns) + max(0, int(event_ns) - int(request_start_ns))
+
+
 def _extract_jsonrpc_info(body: bytes) -> tuple[str, str]:
     jsonrpc_id = ""
     method = ""
@@ -86,6 +94,7 @@ def _build_mcp_breakdown_payload(
         if last_tool_end_ns > 0:
             app_e2e_ms = max(0.1, _ns_to_ms(int(tool_end_ns) - last_tool_end_ns))
     method = ctx.get("jsonrpc_method", "")
+    request_wall_ns = ctx.get("request_wall_ns")
 
     if method == "initialize":
         return {
@@ -100,6 +109,9 @@ def _build_mcp_breakdown_payload(
             "framework_overhead_ms": app_e2e_ms,
             "pre_tool_ms": app_e2e_ms,
             "post_tool_ms": 0.0,
+            "request_wall_ns": request_wall_ns,
+            "request_start_wall_ns": _wall_from_monotonic_delta(ctx, int(request_start_ns)),
+            "request_end_wall_ns": _wall_from_monotonic_delta(ctx, request_end_ns),
             "service_name": os.environ.get(
                 "K_SERVICE", os.environ.get("ATSUITE_MCP_NAME", "atsuite-mcp")
             ),
@@ -118,8 +130,6 @@ def _build_mcp_breakdown_payload(
         3,
     )
     
-    request_wall_ns = ctx.get("request_wall_ns")
-
     return {
         "event": "atsuite_mcp_breakdown",
         "request_id": str(ctx.get("request_id") or ""),
@@ -131,6 +141,10 @@ def _build_mcp_breakdown_payload(
         "state_sync_overhead_ms": state_sync_overhead_ms,
         "framework_overhead_ms": framework_overhead_ms,
         "request_wall_ns": request_wall_ns,
+        "request_start_wall_ns": _wall_from_monotonic_delta(ctx, int(request_start_ns)),
+        "request_end_wall_ns": _wall_from_monotonic_delta(ctx, request_end_ns),
+        "tool_start_wall_ns": _wall_from_monotonic_delta(ctx, int(tool_start_ns)),
+        "tool_end_wall_ns": _wall_from_monotonic_delta(ctx, int(tool_end_ns)),
         "pre_tool_ms": pre_tool_ms,
         "post_tool_ms": post_tool_ms,
         "service_name": os.environ.get(
@@ -202,22 +216,23 @@ def _emit_mcp_breakdown(ctx: dict | None, *, request_end_ns: int, status: int) -
 
 MCP_DIR = Path(__file__).resolve().parent.parent / "mcp"
 CURRENT_DIR = Path.cwd()
-for tool_dir in sorted(MCP_DIR.iterdir()):
-    if tool_dir.is_dir() and (tool_dir / "implementation.py").exists():
-        prev_cwd = os.getcwd()
-        os.chdir(tool_dir)
+if MCP_DIR.exists():
+    for tool_dir in sorted(MCP_DIR.iterdir()):
+        if tool_dir.is_dir() and (tool_dir / "implementation.py").exists():
+            prev_cwd = os.getcwd()
+            os.chdir(tool_dir)
 
-        sys.path.insert(0, str(tool_dir))
-        mod_name = f"{tool_dir.name}_implementation"
-        spec = importlib.util.spec_from_file_location(
-            mod_name, tool_dir / "implementation.py"
-        )
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[mod_name] = module
-        spec.loader.exec_module(module)
-        sys.path.pop(0)
+            sys.path.insert(0, str(tool_dir))
+            mod_name = f"{tool_dir.name}_implementation"
+            spec = importlib.util.spec_from_file_location(
+                mod_name, tool_dir / "implementation.py"
+            )
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[mod_name] = module
+            spec.loader.exec_module(module)
+            sys.path.pop(0)
 
-        os.chdir(prev_cwd)
+            os.chdir(prev_cwd)
 
 server = FastMCP(name=os.environ.get("ATSUITE_MCP_NAME", "atsuite-mcp"))
 
@@ -279,6 +294,14 @@ class MCPRequestLogMiddleware(BaseHTTPMiddleware):
                 "path": request.url.path,
                 "status": int(response.status_code) if response is not None else 500,
                 "duration_ms": round(duration_ms, 3),
+                "request_start_wall_ns": _wall_from_monotonic_delta(
+                    _get_active_request_breakdown() or {},
+                    request_start_ns,
+                ),
+                "request_end_wall_ns": _wall_from_monotonic_delta(
+                    _get_active_request_breakdown() or {},
+                    request_end_ns,
+                ),
                 "service_name": os.environ.get(
                     "K_SERVICE", os.environ.get("ATSUITE_MCP_NAME", "atsuite-mcp")
                 ),
@@ -318,11 +341,6 @@ def wrap_tool(tool_obj):
                 ctx["tool_end_ns"] = _now_ns()
                 ctx["state_sync_overhead_ms"] = (
                     get_state_runtime().get_sync_metrics().get("total_ms", 0.0)
-                )
-                _emit_mcp_breakdown(
-                    ctx,
-                    request_end_ns=int(ctx["tool_end_ns"]),
-                    status=status,
                 )
 
     sig_params = list(inspect.signature(func).parameters.values())

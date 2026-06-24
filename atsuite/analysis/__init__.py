@@ -11,6 +11,7 @@ from atsuite.analysis.model import (
     StateObservation,
 )
 from atsuite.analysis.observer import RunObserver, RunRecorder
+from atsuite.analysis.timeline import PerfettoTraceExporter, TimelineBuilder, TimelineEvent
 
 __all__ = [
     "AnalysisReport",
@@ -20,11 +21,14 @@ __all__ = [
     "InvocationObservation",
     "NodeObservation",
     "ProviderMetric",
+    "PerfettoTraceExporter",
     "RunContext",
     "RunObserver",
     "RunRecorder",
     "SessionObservation",
     "StateObservation",
+    "TimelineBuilder",
+    "TimelineEvent",
     "analyze_events",
     "analyze_recorder",
 ]
