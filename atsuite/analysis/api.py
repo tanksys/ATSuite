@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -11,6 +12,7 @@ from atsuite.analysis.export import AnalysisExporter
 from atsuite.analysis.model import AnalysisReport
 from atsuite.analysis.observer import RunRecorder
 from atsuite.analysis.pricing import PricingPolicy, create_pricing_policy
+from atsuite.analysis.timeline import PerfettoTraceExporter, TimelineBuilder
 
 
 @dataclass
@@ -68,12 +70,27 @@ def analyze_recorder(
         diagnostics=collection.diagnostics,
         evidence=collection.evidence,
     )
+    timestamp = options.timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    trace_payload = TimelineBuilder().build(
+        context,
+        nodes=recorder.nodes,
+        invocations=recorder.invocations,
+        sessions=recorder.sessions,
+        metrics=collection.metrics,
+        diagnostics=collection.diagnostics,
+    )
+    report.trace_path = PerfettoTraceExporter(options.output_dir).export(
+        trace_payload,
+        provider=context.provider,
+        benchmark=context.benchmark,
+        timestamp=timestamp,
+    )
     return AnalysisExporter(options.output_dir).export(
         report,
         collection.evidence,
         provider=context.provider,
         benchmark=context.benchmark,
-        timestamp=options.timestamp,
+        timestamp=timestamp,
     )
 
 

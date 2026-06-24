@@ -336,17 +336,31 @@ class AliSLS:
             if data:
                 row = data[0]
                 values = json.loads(row["_col0"]) if "_col0" in row else row
+                def pick(*names, index=None, default=None):
+                    if isinstance(values, list):
+                        return values[index] if index is not None and index < len(values) else default
+                    for name in names:
+                        if name in values:
+                            return values.get(name)
+                    return default
+
+                duration_ms = pick("durationMs", "durationms", index=0, default=0)
+                schedule_ms = pick("scheduleLatencyMs", "schedulelatencyms", index=7, default=0)
                 return {
-                    "duration_ms": values[0] if isinstance(values, list) else values.get("durationms"),
-                    "memory_usage_mb": values[1] if isinstance(values, list) else values.get("memoryusagemb"),
-                    "is_cold_start": values[2] if isinstance(values, list) else values.get("iscoldstart"),
-                    "cold_start_latency_ms": values[3] if isinstance(values, list) else values.get("coldStartLatencyMs"),
-                    "invoke_function_latency_ms": values[4] if isinstance(values, list) else values.get("invokeFunctionLatencyMs"),
-                    "prepare_code_latency_ms": values[5] if isinstance(values, list) else values.get("prepareCodeLatencyMs"),
-                    "runtime_initialization_ms": values[6] if isinstance(values, list) else values.get("runtimeInitializationMs"),
-                    "schedule_latency_ms": values[7] if isinstance(values, list) else values.get("scheduleLatencyMs"),
-                    "invoker_function_ms": values[7] + values[0] if isinstance(values, list) else float(values.get("scheduleLatencyMs", 0)) + float(values.get("durationms", 0)),
-                    "invokeFunctionStartTimestamp": values[8] if isinstance(values, list) else values.get("invokeFunctionStartTimestamp"),
+                    "duration_ms": duration_ms,
+                    "memory_usage_mb": pick("memoryUsageMB", "memoryusagemb", index=1),
+                    "is_cold_start": pick("isColdStart", "iscoldstart", index=2),
+                    "cold_start_latency_ms": pick("coldStartLatencyMs", "coldstartlatencyms", index=3),
+                    "invoke_function_latency_ms": pick("invokeFunctionLatencyMs", "invokefunctionlatencyms", index=4),
+                    "prepare_code_latency_ms": pick("prepareCodeLatencyMs", "preparecodelatencyms", index=5),
+                    "runtime_initialization_ms": pick("runtimeInitializationMs", "runtimeinitializationms", index=6),
+                    "schedule_latency_ms": schedule_ms,
+                    "invoker_function_ms": float(schedule_ms or 0) + float(duration_ms or 0),
+                    "invokeFunctionStartTimestamp": pick(
+                        "invokeFunctionStartTimestamp",
+                        "invokefunctionstarttimestamp",
+                        index=8,
+                    ),
                 }
             else:
                 return None
@@ -385,6 +399,9 @@ class AliSLS:
                         msg = d.get("message", "")
                         for line in msg.splitlines():
                             if "app_e2e_ms" in line:
+                                start = line.find("{")
+                                if start >= 0:
+                                    line = line[start:]
                                 try:
                                     result.append(json.loads(line))
                                 except json.JSONDecodeError:

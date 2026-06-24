@@ -64,4 +64,5 @@ def print_summary(report: AnalysisReport) -> None:
         print(f"Diagnostics: {len(report.diagnostics)} issue(s)")
     print(f"Report: {report.report_path}")
     print(f"Evidence: {report.evidence_path}")
+    print(f"Trace: {report.trace_path}")
     print("=" * 60)

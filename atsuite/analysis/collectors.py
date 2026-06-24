@@ -51,6 +51,161 @@ def _coerce_int(value: Any, default: int = 0) -> int:
         return default
 
 
+def _epochish_to_ns(value: Any) -> int:
+    try:
+        raw = float(value)
+    except (TypeError, ValueError):
+        return 0
+    if raw <= 0:
+        return 0
+    if raw >= 1e17:
+        return int(raw)
+    if raw >= 1e14:
+        return int(raw * 1_000)
+    if raw >= 1e11:
+        return int(raw * 1_000_000)
+    if raw >= 1e8:
+        return int(raw * 1_000_000_000)
+    return 0
+
+
+def _datetime_text_to_ns(value: Any) -> int:
+    if value in (None, ""):
+        return 0
+    if isinstance(value, (int, float)):
+        return _epochish_to_ns(value)
+    text = str(value).strip()
+    if not text:
+        return 0
+    try:
+        return _epochish_to_ns(float(text))
+    except (TypeError, ValueError):
+        pass
+    try:
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return 0
+    return int(dt.timestamp() * 1_000_000_000)
+
+
+def _duration_ms_to_ns(value: Any) -> int:
+    try:
+        return int(round(float(value) * 1_000_000))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _log_event_timestamp_ns(event: Dict[str, Any]) -> int:
+    for key in ("timestamp", "@timestamp", "time", "eventTime"):
+        if key in event:
+            parsed = _datetime_text_to_ns(event.get(key))
+            if parsed:
+                return parsed
+    return 0
+
+
+def _max_log_event_timestamp_ns(logs: Iterable[Dict[str, Any]]) -> int:
+    return max((_log_event_timestamp_ns(event) for event in logs), default=0)
+
+
+_BREAKDOWN_FIELDS = {
+    "app_e2e_ms",
+    "tool_exec_ms",
+    "state_sync_overhead_ms",
+    "framework_overhead_ms",
+    "pre_tool_ms",
+    "post_tool_ms",
+    "request_wall_ns",
+    "request_start_wall_ns",
+    "request_end_wall_ns",
+    "tool_start_wall_ns",
+    "tool_end_wall_ns",
+    "timestamp_ms",
+    "service_name",
+    "status",
+    "tool_name",
+    "trace_id",
+}
+
+_BREAKDOWN_EVENT_NAMES = {
+    "atsuite_function_breakdown",
+    "atsuite_mcp_breakdown",
+    "uaib_function_breakdown",
+    "uaib_mcp_breakdown",
+}
+
+
+def _normalise_breakdown_fields(payload: Dict[str, Any]) -> Dict[str, Any]:
+    fields = {k: v for k, v in payload.items() if k in _BREAKDOWN_FIELDS and v is not None}
+    explicit_wall = any(
+        _coerce_int(fields.get(name)) > 0
+        for name in (
+            "request_start_wall_ns",
+            "request_end_wall_ns",
+            "tool_start_wall_ns",
+            "tool_end_wall_ns",
+        )
+    )
+    derived = False
+    request_start_ns = _coerce_int(fields.get("request_start_wall_ns")) or _coerce_int(
+        fields.get("request_wall_ns")
+    )
+    if request_start_ns and not fields.get("request_start_wall_ns"):
+        fields["request_start_wall_ns"] = request_start_ns
+        derived = True
+    request_end_ns = _coerce_int(fields.get("request_end_wall_ns"))
+    tool_start_ns = _coerce_int(fields.get("tool_start_wall_ns"))
+    tool_end_ns = _coerce_int(fields.get("tool_end_wall_ns"))
+
+    if request_start_ns and not request_end_ns and _coerce_float(fields.get("app_e2e_ms")) > 0:
+        request_end_ns = request_start_ns + _duration_ms_to_ns(fields.get("app_e2e_ms"))
+        fields["request_end_wall_ns"] = request_end_ns
+        derived = True
+    if request_start_ns and not tool_start_ns and fields.get("pre_tool_ms") is not None:
+        tool_start_ns = request_start_ns + _duration_ms_to_ns(fields.get("pre_tool_ms"))
+        fields["tool_start_wall_ns"] = tool_start_ns
+        derived = True
+    if tool_start_ns and not tool_end_ns and _coerce_float(fields.get("tool_exec_ms")) > 0:
+        tool_end_ns = tool_start_ns + _duration_ms_to_ns(fields.get("tool_exec_ms"))
+        fields["tool_end_wall_ns"] = tool_end_ns
+        derived = True
+    if request_end_ns and not tool_end_ns and _coerce_float(fields.get("post_tool_ms")) > 0:
+        tool_end_ns = max(0, request_end_ns - _duration_ms_to_ns(fields.get("post_tool_ms")))
+        fields["tool_end_wall_ns"] = tool_end_ns
+        derived = True
+    if tool_end_ns and not tool_start_ns and _coerce_float(fields.get("tool_exec_ms")) > 0:
+        fields["tool_start_wall_ns"] = max(
+            0,
+            tool_end_ns - _duration_ms_to_ns(fields.get("tool_exec_ms")),
+        )
+        derived = True
+
+    if explicit_wall:
+        fields.setdefault("time_source", "sdk_wall_clock")
+        fields.setdefault("confidence", "sdk_wall_clock")
+    elif derived:
+        fields.setdefault("time_source", "derived_from_duration")
+        fields.setdefault("confidence", "estimated")
+    return fields
+
+
+def _add_provider_duration_from_response(
+    fields: Dict[str, Any],
+    *,
+    response_wall_ns: int,
+    duration_ms: Any,
+    confidence: str,
+) -> None:
+    duration_ns = _duration_ms_to_ns(duration_ms)
+    if response_wall_ns <= 0 or duration_ns <= 0:
+        return
+    fields.setdefault("provider_duration_ms", _coerce_float(duration_ms))
+    fields.setdefault("provider_response_wall_ns", response_wall_ns)
+    fields.setdefault("provider_receive_wall_ns", max(0, response_wall_ns - duration_ns))
+    fields.setdefault("provider_time_source", "provider_log")
+    fields.setdefault("provider_confidence", confidence)
+
+
 def _memory_from_node(node: Optional[NodeObservation]) -> float:
     if node is None:
         return 0.0
@@ -88,6 +243,8 @@ def _metric_from_invocation(
         "memory_usage_mb": _memory_from_node(node),
         "disk": _disk_from_node(node),
         "is_cold_start": "false",
+        "time_source": "client_only",
+        "confidence": "client_only",
     }
     merged.update(dict(fields or {}))
     if "duration_ms" in merged and "elapsed_time_ms" not in merged:
@@ -136,6 +293,8 @@ class AliSLSCollector:
         self.project = project
         self.location = location
         self._sls = None
+        self._sls_clients: Dict[str, Any] = {}
+        self._log_destinations: Dict[str, tuple[str, str]] = {}
 
     @property
     def sls(self):
@@ -145,12 +304,96 @@ class AliSLSCollector:
             self._sls = AliSLS(project=self.project, location=self.location)
         return self._sls
 
+    def _sls_for_project(self, project: str):
+        project = project or self.project
+        if project == self.project:
+            return self.sls
+        if project not in self._sls_clients:
+            from atsuite.ali.sls import AliSLS
+
+            self._sls_clients[project] = AliSLS(project=project, location=self.location)
+        return self._sls_clients[project]
+
     def _logstore(self, context: RunContext, node: Optional[NodeObservation]) -> str:
         if node is None:
             return context.benchmark.lower()
         runtime_name = node.runtime_name or node.target_id or node.node_name or context.benchmark
         kind = "mcp" if node.node_type in ("mcp", "tool") else "function"
         return f"{runtime_name.lower()}-{kind}"
+
+    def _log_destination(self, logstore: str) -> tuple[str, str]:
+        if logstore in self._log_destinations:
+            return self._log_destinations[logstore]
+        destination = (self.project, logstore)
+        try:
+            from alibabacloud_fc20230330 import models as fc_models
+            from alibabacloud_tea_util import models as util_models
+            from atsuite.ali.ali import Ali
+
+            response = Ali().get_fc_client().get_function_with_options(
+                logstore,
+                fc_models.GetFunctionRequest(),
+                {},
+                util_models.RuntimeOptions(),
+            )
+            body = response.body.to_map() if hasattr(response.body, "to_map") else response.body
+            log_config = {}
+            if isinstance(body, dict):
+                log_config = body.get("logConfig") or body.get("log_config") or {}
+            if isinstance(log_config, dict):
+                destination = (
+                    str(log_config.get("project") or self.project),
+                    str(log_config.get("logstore") or logstore),
+                )
+        except Exception:
+            destination = (self.project, logstore)
+        self._log_destinations[logstore] = destination
+        return destination
+
+    def _breakdowns_for_logstore(
+        self,
+        project: str,
+        logstore: str,
+        from_time: int,
+        to_time: int,
+        result: CollectionResult,
+    ) -> Dict[str, Dict[str, Any]]:
+        records: Dict[str, Dict[str, Any]] = {}
+        try:
+            payloads = self._sls_for_project(project).getbreakdownlogs(
+                logstore,
+                from_time,
+                to_time,
+                "app_e2e_ms",
+            )
+        except Exception as exc:
+            result.diagnostics.append(
+                {
+                    "kind": "collector_error",
+                    "provider": "ali_sls",
+                    "project": project,
+                    "logstore": logstore,
+                    "source": "breakdown",
+                    "error": str(exc),
+                }
+            )
+            return records
+        for payload in payloads or []:
+            if not isinstance(payload, dict):
+                continue
+            event_name = str(payload.get("event") or "")
+            if event_name not in _BREAKDOWN_EVENT_NAMES:
+                continue
+            fields = _normalise_breakdown_fields(payload)
+            for key in (
+                payload.get("request_id"),
+                payload.get("client_request_id"),
+                payload.get("jsonrpc_id"),
+            ):
+                key = str(key or "")
+                if key:
+                    records[key] = dict(fields)
+        return records
 
     def collect(
         self,
@@ -163,6 +406,7 @@ class AliSLSCollector:
         result = CollectionResult()
         from_time = int(context.start_time or time.time())
         to_time = int((context.end_time or time.time()) + 120)
+        breakdowns_by_logstore: Dict[tuple[str, str], Dict[str, Dict[str, Any]]] = {}
         for index, invocation in enumerate(invocations, start=1):
             node = nodes.get(invocation.node_id)
             request_id = invocation.provider_request_id or invocation.call_id
@@ -175,20 +419,28 @@ class AliSLSCollector:
                 )
                 continue
             query = (
-                "* | SELECT durationms, memoryusagemb, iscoldstart, coldStartLatencyMs, "
+                "* | SELECT durationMs, memoryUsageMB, isColdStart, coldStartLatencyMs, "
                 "invokeFunctionLatencyMs, prepareCodeLatencyMs, runtimeInitializationMs, "
                 "scheduleLatencyMs, invokeFunctionStartTimestamp FROM log "
                 f"WHERE requestId = '{request_id}' AND operation = 'InvokeFunction'"
             )
-            logstore = self._logstore(context, node)
+            default_logstore = self._logstore(context, node)
+            sls_project, logstore = self._log_destination(default_logstore)
             metrics = None
             try:
-                metrics = self.sls.getlogs(logstore, from_time, to_time, query)
+                metrics = self._sls_for_project(sls_project).getlogs(
+                    logstore,
+                    from_time,
+                    to_time,
+                    query,
+                )
             except Exception as exc:
                 result.diagnostics.append(
                     {
                         "kind": "collector_error",
                         "provider": "ali_sls",
+                        "project": sls_project,
+                        "logstore": logstore,
                         "request_id": request_id,
                         "error": str(exc),
                     }
@@ -200,7 +452,8 @@ class AliSLSCollector:
                     provider="ali",
                     source="sls",
                     query={
-                        "project": self.project,
+                        "configured_project": self.project,
+                        "project": sls_project,
                         "location": self.location,
                         "logstore": logstore,
                         "from": from_time,
@@ -215,6 +468,32 @@ class AliSLSCollector:
                 fields = dict(metrics)
                 fields.setdefault("elapsed_time_ms", fields.get("duration_ms"))
                 fields["client_e2e_ms"] = invocation.client_elapsed_ms
+                duration_ms = fields.get("duration_ms") or fields.get("durationms")
+                provider_start_ns = _epochish_to_ns(
+                    fields.get("invokeFunctionStartTimestamp")
+                )
+                if provider_start_ns and duration_ms:
+                    fields.setdefault("provider_receive_wall_ns", provider_start_ns)
+                    fields.setdefault("provider_dispatch_wall_ns", provider_start_ns)
+                    fields.setdefault(
+                        "provider_response_wall_ns",
+                        provider_start_ns + _duration_ms_to_ns(duration_ms),
+                    )
+                    fields.setdefault("provider_duration_ms", _coerce_float(duration_ms))
+                    fields.setdefault("provider_time_source", "provider_log")
+                    fields.setdefault("provider_confidence", "provider_log")
+                destination_key = (sls_project, logstore)
+                if destination_key not in breakdowns_by_logstore:
+                    breakdowns_by_logstore[destination_key] = self._breakdowns_for_logstore(
+                        sls_project,
+                        logstore,
+                        from_time,
+                        to_time,
+                        result,
+                    )
+                breakdowns = breakdowns_by_logstore.get(destination_key, {})
+                fields.update(breakdowns.get(invocation.call_id, {}))
+                fields.update(breakdowns.get(request_id, {}))
                 result.metrics.append(
                     _metric_from_invocation(
                         "ali",
@@ -226,8 +505,28 @@ class AliSLSCollector:
                     )
                 )
             else:
+                destination_key = (sls_project, logstore)
+                if destination_key not in breakdowns_by_logstore:
+                    breakdowns_by_logstore[destination_key] = self._breakdowns_for_logstore(
+                        sls_project,
+                        logstore,
+                        from_time,
+                        to_time,
+                        result,
+                    )
+                fallback_fields = {}
+                breakdowns = breakdowns_by_logstore.get(destination_key, {})
+                fallback_fields.update(breakdowns.get(invocation.call_id, {}))
+                fallback_fields.update(breakdowns.get(request_id, {}))
                 result.metrics.append(
-                    _metric_from_invocation("ali", "runtime", invocation, node, evidence_refs=[evidence_id])
+                    _metric_from_invocation(
+                        "ali",
+                        "runtime",
+                        invocation,
+                        node,
+                        fallback_fields,
+                        evidence_refs=[evidence_id],
+                    )
                 )
                 result.diagnostics.append(
                     {
@@ -500,25 +799,12 @@ class AWSCloudWatchCollector:
                 except Exception:
                     continue
                 event_name = str(payload.get("event", ""))
-                if event_name not in ("atsuite_function_breakdown", "atsuite_mcp_breakdown"):
+                if event_name not in _BREAKDOWN_EVENT_NAMES:
                     continue
                 key = str(payload.get("request_id") or payload.get("client_request_id") or payload.get("jsonrpc_id") or "")
                 if not key:
                     continue
-                records[key] = {
-                    k: v
-                    for k, v in payload.items()
-                    if k
-                    in {
-                        "app_e2e_ms",
-                        "tool_exec_ms",
-                        "state_sync_overhead_ms",
-                        "framework_overhead_ms",
-                        "pre_tool_ms",
-                        "post_tool_ms",
-                        "request_wall_ns",
-                    }
-                }
+                records[key] = _normalise_breakdown_fields(payload)
         return records
 
     def collect(
@@ -598,6 +884,12 @@ class AWSCloudWatchCollector:
                 if duration is not None:
                     fields["duration_ms"] = duration
                     fields["elapsed_time_ms"] = duration
+                    _add_provider_duration_from_response(
+                        fields,
+                        response_wall_ns=_max_log_event_timestamp_ns(logs),
+                        duration_ms=duration,
+                        confidence="estimated_from_report_timestamp",
+                    )
                 fields["billed_duration_ms"] = parsed.get("billed_duration_ms")
                 fields["memory_usage_mb"] = parsed.get("memory_used_mb")
                 fields["memory"] = parsed.get("memory_limit_mb") or _memory_from_node(node)
@@ -895,56 +1187,39 @@ class GCPCloudLoggingCollector:
                 trace = payload.get("trace") or entry.get("trace")
                 if rid and trace:
                     request_id_to_trace[str(rid)] = str(trace)
-                if payload.get("event") in ("atsuite_function_breakdown", "atsuite_mcp_breakdown"):
-                    rid = str(payload.get("request_id") or payload.get("client_request_id") or "")
+                if payload.get("event") in _BREAKDOWN_EVENT_NAMES:
+                    rid = str(payload.get("request_id") or payload.get("client_request_id") or payload.get("jsonrpc_id") or "")
                     if rid:
-                        breakdowns[rid] = {
-                            k: payload.get(k)
-                            for k in (
-                                "app_e2e_ms",
-                                "tool_exec_ms",
-                                "state_sync_overhead_ms",
-                                "framework_overhead_ms",
-                                "pre_tool_ms",
-                                "post_tool_ms",
-                            )
-                            if payload.get(k) is not None
-                        }
+                        breakdowns[rid] = _normalise_breakdown_fields(payload)
             text = entry.get("textPayload")
             if isinstance(text, str) and text.lstrip().startswith("{"):
                 try:
                     payload = json.loads(text)
                 except Exception:
                     payload = {}
-                if isinstance(payload, dict) and payload.get("event") in (
-                    "atsuite_function_breakdown",
-                    "atsuite_mcp_breakdown",
-                ):
-                    rid = str(payload.get("request_id") or payload.get("client_request_id") or "")
+                if isinstance(payload, dict) and payload.get("event") in _BREAKDOWN_EVENT_NAMES:
+                    rid = str(payload.get("request_id") or payload.get("client_request_id") or payload.get("jsonrpc_id") or "")
                     if rid:
-                        breakdowns[rid] = {
-                            k: payload.get(k)
-                            for k in (
-                                "app_e2e_ms",
-                                "tool_exec_ms",
-                                "state_sync_overhead_ms",
-                                "framework_overhead_ms",
-                                "pre_tool_ms",
-                                "post_tool_ms",
-                            )
-                            if payload.get(k) is not None
-                        }
+                        breakdowns[rid] = _normalise_breakdown_fields(payload)
 
             http_req = entry.get("httpRequest") or {}
             if isinstance(http_req, dict) and http_req.get("latency"):
                 trace = str(entry.get("trace") or "")
                 labels = (entry.get("resource") or {}).get("labels") or {}
+                latency_ms = self._latency_ms(http_req.get("latency"))
                 meta = {
-                    "latency_ms": self._latency_ms(http_req.get("latency")),
+                    "latency_ms": latency_ms,
                     "status": _coerce_int(http_req.get("status"), 0),
                     "service_name": labels.get("service_name") or "",
                     "trace": trace,
                 }
+                response_wall_ns = _datetime_text_to_ns(entry.get("timestamp"))
+                _add_provider_duration_from_response(
+                    meta,
+                    response_wall_ns=response_wall_ns,
+                    duration_ms=latency_ms,
+                    confidence="provider_log",
+                )
                 request_metas.append(meta)
                 if trace:
                     trace_to_meta[trace] = meta
@@ -1005,6 +1280,18 @@ class GCPCloudLoggingCollector:
                         "framework_overhead_ms",
                         "pre_tool_ms",
                         "post_tool_ms",
+                        "request_wall_ns",
+                        "request_start_wall_ns",
+                        "request_end_wall_ns",
+                        "tool_start_wall_ns",
+                        "tool_end_wall_ns",
+                        "time_source",
+                        "confidence",
+                        "provider_receive_wall_ns",
+                        "provider_response_wall_ns",
+                        "provider_duration_ms",
+                        "provider_time_source",
+                        "provider_confidence",
                     }
                 },
             }
