@@ -1,0 +1,205 @@
+{
+  "trace_file": "./trace/gemini-flash-test.json",
+  "nodes": [
+    {
+      "name": "accommodations",
+      "dir": "./nodes/accommodations",
+      "trace_names": [
+        "accommodations.run"
+      ]
+    },
+    {
+      "name": "attractions",
+      "dir": "./nodes/attractions",
+      "trace_names": [
+        "attractions.run"
+      ]
+    },
+    {
+      "name": "cities",
+      "dir": "./nodes/cities",
+      "trace_names": [
+        "cities.run"
+      ]
+    },
+    {
+      "name": "flights",
+      "dir": "./nodes/flights",
+      "trace_names": [
+        "flights.run",
+        "flights.run_for_annotation"
+      ]
+    },
+    {
+      "name": "google_distance_matrix",
+      "dir": "./nodes/google_distance_matrix",
+      "trace_names": [
+        "googleDistanceMatrix.run"
+      ]
+    },
+    {
+      "name": "notebook",
+      "dir": "./nodes/notebook",
+      "trace_names": [
+        {
+          "name": "notebook.write",
+          "stateful": true
+        },
+        {
+          "name": "notebook.list_all",
+          "stateful": false
+        },
+        {
+          "name": "notebook.reset",
+          "stateful": true
+        }
+      ]
+    },
+    {
+      "name": "restaurants",
+      "dir": "./nodes/restaurants",
+      "trace_names": [
+        "restaurants.run"
+      ]
+    }
+  ],
+  "pipeline": {
+    "faas": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "units": [
+        {
+          "name": "accommodations",
+          "node": "accommodations",
+          "trace_names": [
+            "accommodations.run"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "attractions",
+          "node": "attractions",
+          "trace_names": [
+            "attractions.run"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "cities",
+          "node": "cities",
+          "trace_names": [
+            "cities.run"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "flights",
+          "node": "flights",
+          "trace_names": [
+            "flights.run",
+            "flights.run_for_annotation"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "google_distance_matrix",
+          "node": "google_distance_matrix",
+          "trace_names": [
+            "googleDistanceMatrix.run"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "notebook",
+          "node": "notebook",
+          "trace_names": [
+            "notebook.write",
+            "notebook.list_all",
+            "notebook.reset"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "restaurants",
+          "node": "restaurants",
+          "trace_names": [
+            "restaurants.run"
+          ],
+          "deploy": {
+            "cpu": 1,
+            "memory": 1024,
+            "disk": 512,
+            "timeout": 30
+          }
+        }
+      ]
+    },
+    "mcp_serverless": {
+      "build": {
+        "python_version": "3.11.1"
+      },
+      "servers": [
+        {
+          "name": "travelplanner_lookup",
+          "nodes": [
+            "flights",
+            "cities",
+            "google_distance_matrix",
+            "accommodations",
+            "restaurants",
+            "attractions"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 30
+          }
+        },
+        {
+          "name": "travelplanner_notebook",
+          "nodes": [
+            "notebook"
+          ],
+          "deploy": {
+            "cpu": 2,
+            "memory": 2048,
+            "disk": 512,
+            "timeout": 30
+          }
+        }
+      ]
+    }
+  }
+}

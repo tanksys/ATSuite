@@ -14,8 +14,8 @@ sync-aws:
 sync-gcp:
     uv sync --group gcp
 
-travelplanner-config := "benchmarks/TravelPlanner/config/faas7_mcp2_min.json"
-travelplanner-urlmap := "url_results/faas7_mcp2_min.json"
+travelplanner-config := "benchmarks/TravelPlanner/config/faas7_mcp2_test.json"
+travelplanner-urlmap := "url_results/faas7_mcp2_test.json"
 
 aws-faas-build:
     uv run python -m tools.build --config {{ travelplanner-config }} --provider aws_lambda
